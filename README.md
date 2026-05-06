@@ -78,9 +78,7 @@ Once installed, you can find the new nodes in your ComfyUI menu:
 
 Right-click on the ComfyUI canvas (or double-click to search).
 
-Go to the Smart Nodes category.
-
-Select any of the loaders:
+Search for any of the loaders:
 
 🌐 Civitai Visual LoRA Loader by LX
 
@@ -96,6 +94,6 @@ Click the big "🌐 Open Visual LoRA Browser" button on the node to launch the v
 
 If you run into any issues or have feature requests, feel free to open an issue on GitHub.
 
-If you enjoy this project, consider supporting development by grabbing the PRO Version on Patreon or simply leaving a ⭐ on this GitHub repository!
+If you enjoy this project, consider supporting development by simply leaving a ⭐ on this GitHub repository!
 
 ---
