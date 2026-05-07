@@ -11,14 +11,14 @@
 
 <p align="center"> This is how the Visual Browser Nodes looks like, when you open them up, they are all similar:</p>
 
-<img width="2560" height="1438" alt="Entering the Visual Browser" src="https://github.com/user-attachments/assets/d91979c0-9abe-4dde-b2e2-4c343c837106" />
+<img width="2048" height="1150" alt="Civitai Visual Lora Loader and Browser by LX" src="https://github.com/user-attachments/assets/21caf9e2-0162-483a-8340-f2de451dbb1d" />
 <br>
 
 ---
 # The Nodes
 Here are my three Nodes in the ComfyUI Canvas Workspace:
 
-<img width="1757" height="787" alt="Screenshot_1" src="https://github.com/user-attachments/assets/25bbd2e3-c12a-48c5-b06c-158eef358607" />
+<img width="1516" height="735" alt="The Nodes Civitai Visual Loaders and Browsers by LX" src="https://github.com/user-attachments/assets/fc1e2066-a4a2-4de1-a286-8a266b660c2e" />
 
 <br>
 
@@ -36,16 +36,25 @@ Say goodbye to endless, confusing dropdown menus and hello to a sleek visual int
 
 * **🖼️ Visual Grid Interface:** View your local models as a clean, responsive grid of thumbnails instead of text lists.
 * **🔍 Quick Search:** Instantly filter your models by file name or folder.
-* **🌐 Basic Civitai Integration:** Fetch the primary preview image, Base Model info, and Trigger Words directly from Civitai.
-* **📁 Local Custom Covers:** Easily set your own local images as cover art for models not found on Civitai.
-* **🛑 NSFW Filter:** Basic toggle to hide or show NSFW content.
-* **⌨️ Lightning-Fast Keyboard Navigation:** Surf through your models using `W`, `A`, `S`, `D` or the Arrow Keys.
-* **🎬 Full Media Gallery & Video Control:** View all preview images and videos. Features a global Play/Pause "Zen Mode" that resets preview videos to Frame 0 to reduce visual clutter.
-* **📋 Advanced Hover Menus:** Copy Positive/Negative Prompts straight from preview images, download Civitai images directly, or instantly open local folders.
-* **🧠 Deep Civitai Metadata:** Automatically scans and displays Clip Skip, Training Strength, colored Review Ratings, Download stats, and Publish dates.
-* **⭐ Deep Personalization:** Rate your models (5-Star System), set Custom Aliases, and write Personal Notes—all automatically saved as you type.
+* **🌐 Basic Civitai Integration:** Fetch the primary preview image, Base Model & LoRA info, and Trigger Words directly from Civitai.
+
+<br>
+
+* **📋 Advanced Hover Menus for preview image:** Copy Positive/Negative Prompts straight from preview images, download Civitai images directly, or instantly open local folders.
+* **🖼️ Set your Own Cover:** Set your own preview image as cover for the Grid Interface.
+* **📁 Add local image:** Easily add your own local images and you can also set is as cover.
+
+<br>
+
 * **🗂️ Advanced Sorting & Filtering:** Sort by Rating, Reviews, Download Date, and multi-select Base Models.
+* **🛑 NSFW Filter:** Basic toggle to hide or show NSFW content.
 * **🙈 Individual Media Hiding:** Permanently blur out specific NSFW or annoying preview images with one click.
+
+<br>
+
+* **🎬 Full Media Gallery** View all preview images and videos.
+* **🎬 Video Control:** Features a global Play/Pause "Zen Mode" that resets preview videos to Frame 0 to reduce visual clutter.
+* **⌨️ Lightning-Fast Keyboard Navigation:** Surf through your models using the Arrow Keys or `W`, `A`, `S`, `D`.
 
 ---
 
