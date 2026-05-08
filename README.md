@@ -66,7 +66,7 @@ Say goodbye to endless, confusing dropdown menus and hello to a sleek visual int
   ```bash
   cd ComfyUI/custom_nodes
   #Clone this repository:
-  git clone https://github.com/LX-ComfyUI/Visual-Browser-Nodes-by-LX.git
+  git clone https://github.com/LX-ComfyUI/VisualBrowserNodes-by-LX.git
 
 Restart ComfyUI.
 
