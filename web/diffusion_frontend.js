@@ -2,7 +2,7 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 if (!window.comfyVisualDiffusionCache) window.comfyVisualDiffusionCache = {};
-if (!window.comfyVisualBrowserColors) window.comfyVisualBrowserColors = {};
+// CLEANUP: Removed window.comfyVisualBrowserColors — Pro-version remnant, never read in Basic
 
 // --- LOCAL STORAGE INIT ---
 if (window.comfyVisualDiffHideImages === undefined) window.comfyVisualDiffHideImages = false;
@@ -15,19 +15,14 @@ if (window.comfyVisualDiffSortAsc === undefined) window.comfyVisualDiffSortAsc =
 if (!window.comfyVisualDiffFilters) {
     window.comfyVisualDiffFilters = {
         search: "",
-        rating: "0",
         nsfw: localStorage.getItem("lx_diff_nsfw_filter") || "all",
-        sort: "file",
-        viewOptions: { img: true, alias: true, file: true, base: true, color: true, published: false, downloaded: false, rating: false, reviews: false },
+        // CLEANUP: viewOptions reduced to fields actually used in Basic (img, file, base) —
+        // alias/color/published/downloaded/rating/reviews were Pro-only and never read here
+        viewOptions: { img: true, file: true, base: true },
         baseModels: ["all"]
     };
 }
-
-// Fallback for older caches
-if (window.comfyVisualDiffFilters.viewOptions.published === undefined) window.comfyVisualDiffFilters.viewOptions.published = false;
-if (window.comfyVisualDiffFilters.viewOptions.downloaded === undefined) window.comfyVisualDiffFilters.viewOptions.downloaded = false;
-if (window.comfyVisualDiffFilters.viewOptions.rating === undefined) window.comfyVisualDiffFilters.viewOptions.rating = false;
-if (window.comfyVisualDiffFilters.viewOptions.reviews === undefined) window.comfyVisualDiffFilters.viewOptions.reviews = false;
+// CLEANUP: Removed Pro-only viewOptions fallbacks + dead `rating`/`sort` filter fields
 
 const diffIsVideoUrl = (url) => {
     if (!url) return false;
@@ -44,27 +39,12 @@ const diffEscapeHTML = (str) => {
         .replace(/'/g, '&#39;');
 };
 
-const diffSanitizeHTML = (html) => {
-    if (!html) return "";
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const badTags = doc.querySelectorAll('script, iframe, object, embed, style, link, meta, img, table');
-    badTags.forEach(el => el.remove());
-    const allElements = doc.querySelectorAll('*');
-    allElements.forEach(el => {
-        while (el.attributes.length > 0) el.removeAttribute(el.attributes[0].name);
-    });
-    doc.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
-        const b = document.createElement('strong');
-        b.innerHTML = h.innerHTML + "<br>";
-        h.replaceWith(b);
-    });
-    return doc.body.innerHTML;
-};
+// CLEANUP: Removed unused `diffSanitizeHTML` helper — Pro-version remnant, never called in Basic
 
 // --- BASIC VERSION: COLOR SERVER SYNC REMOVED ---
 
 app.registerExtension({
-    name: "VisualDiffusionBrowserNodes-Basic-by-LX",
+    name: "VisualDiffusionBrowserNodes-by-LX-ComfyUI",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name === "VisualDiffusionLoaderLX") {
             if (!document.getElementById('lx-diff-browser-styles')) {
@@ -85,20 +65,24 @@ app.registerExtension({
                 .diff-toggle-img-btn, .diff-toggle-nsfw-btn, .diff-help-btn, .diff-toggle-pro-btn { background: #333; border: 1px solid #444; color: white; padding: 0 8px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; width: auto; }
                 .diff-toggle-img-btn:hover, .diff-toggle-nsfw-btn:hover, .diff-help-btn:hover, .diff-toggle-pro-btn:hover { background: #444; }
 
-                .diff-support-btn.diff-pro-btn { background: #b8860b !important; border: 1px solid #daa520 !important; color: white !important; font-weight: bold; font-size: 13px; padding: 0 10px; border-radius: 5px; cursor: pointer; transition: 0.2s;}
-                .diff-support-btn.diff-pro-btn:hover { background: #daa520 !important; }
+                /* PRO BUTTONS — visually unified with the rest of the header (matches .diff-help-btn) */
+                .diff-support-btn.diff-pro-btn { background: #333 !important; border: 1px solid #444 !important; color: white !important; font-weight: bold; font-size: 13px; padding: 0 10px; border-radius: 5px; cursor: pointer; transition: 0.2s;}
+                .diff-support-btn.diff-pro-btn:hover { background: #444 !important; }
 
-                .diff-fetch-all-btn { background: #1971c2; border: 1px solid #1c7ed6; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; width: 140px; }
-                .diff-fetch-all-btn:hover { background: #1c7ed6; }
+                .diff-fetch-all-btn { background: #333; border: 1px solid #444; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; width: 140px; }
+                .diff-fetch-all-btn:hover { background: #444; }
 
                 .diff-pro-star { cursor: pointer; color: #ffd700; font-size: 16px; margin-left: 10px; user-select: none; }
                 .diff-pro-msg { color: #ffd700; font-size: 12px; margin-left: 10px; font-weight: bold; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-                .diff-pro-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); color: #ffd700; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: bold; padding: 15px; z-index: 20; opacity: 0; transition: opacity 0.2s; cursor: pointer; font-size: 14px; line-height: 1.4; border-radius: 8px;}
+                .diff-pro-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); color: #ffd700; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: bold; padding: 15px; z-index: 20; opacity: 0; transition: opacity 0.2s; cursor: default; font-size: 14px; line-height: 1.4; border-radius: 8px;}
                 .diff-img-container:hover .diff-pro-overlay { opacity: 1; }
 
                 .diff-hide-pro-mode .diff-pro-row { display: none !important; }
                 .diff-hide-pro-mode .diff-hideable-pro-elem { display: none !important; }
                 .diff-hide-pro-mode .diff-hideable-pro-star { display: none !important; }
+                /* FIX: Hide-Pro toggle now also hides the top-row Pro and Load-All-Data buttons */
+                .diff-hide-pro-mode .diff-support-btn,
+                .diff-hide-pro-mode .diff-fetch-all-btn { display: none !important; }
 
                 .diff-modal-body { display: flex; flex: 1; overflow: hidden; position: relative;}
                 .diff-left-pane { display: flex; flex-direction: column; width: 55%; min-width: 300px; }
@@ -216,15 +200,22 @@ app.registerExtension({
 
             const updateCardPreview = (bg, filename) => {
                 const c = window.comfyVisualDiffusionCache[filename] || {};
-                const img = bg.querySelector(`#diff-card-img-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`);
-                const foot = bg.querySelector(`#diff-card-foot-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`);
+                // FIX: Look up card by data-filename selector instead of derived ID — avoids
+                // collisions when two filenames sanitize to the same alphanumeric string.
+                const card = bg.querySelector(`.diff-card[data-filename="${CSS.escape(filename)}"]`);
+                if (!card) return;
+                const img = card.querySelector('.diff-card-img');
+                const foot = card.querySelector('.diff-card-footer');
 
                 if (img) {
+                    // FIX: escapeHTML on URL — prevents attribute breakout if Civitai/cache returns a URL with quotes
                     if (c.customCover) {
-                        img.innerHTML = diffIsVideoUrl(c.customCover) ? `<video src="${c.customCover}" ${window.comfyVisualDiffAutoPlay ? "autoplay" : ""} loop muted playsinline class="diff-card-media"></video>` : `<img src="${c.customCover}" class="diff-card-media">`;
+                        const url = diffEscapeHTML(c.customCover);
+                        img.innerHTML = diffIsVideoUrl(c.customCover) ? `<video src="${url}" ${window.comfyVisualDiffAutoPlay ? "autoplay" : ""} loop muted playsinline class="diff-card-media"></video>` : `<img src="${url}" class="diff-card-media">`;
                     }
                     else if (c.images?.[0]) {
-                        img.innerHTML = diffIsVideoUrl(c.images[0].url) ? `<video src="${c.images[0].url}" ${window.comfyVisualDiffAutoPlay ? "autoplay" : ""} loop muted playsinline class="diff-card-media"></video>` : `<img src="${c.images[0].url}" class="diff-card-media">`;
+                        const url = diffEscapeHTML(c.images[0].url);
+                        img.innerHTML = diffIsVideoUrl(c.images[0].url) ? `<video src="${url}" ${window.comfyVisualDiffAutoPlay ? "autoplay" : ""} loop muted playsinline class="diff-card-media"></video>` : `<img src="${url}" class="diff-card-media">`;
                     }
                     else {
                         img.innerHTML = "NO DATA";
@@ -290,12 +281,14 @@ app.registerExtension({
                     let mediaTag = "";
 
                     if (isFull) {
+                        // FIX: escapeHTML on imgInfo.url — defense in depth against attribute breakout
+                        const safeUrl = diffEscapeHTML(imgInfo.url);
                         metaHtml = `<div class="diff-img-meta-overlay"><div class="diff-img-action-btns">
                             ${m.prompt ? `<button class="diff-civitai-btn diff-action-copy-pos">📋 Copy +Prompt</button>` : ''}
                             ${m.negativePrompt ? `<button class="diff-civitai-btn diff-action-copy-neg">📋 Copy -Prompt</button>` : ''}
-                            <button class="diff-civitai-btn diff-action-copy-img" data-url="${imgInfo.url}">📋 ${diffIsVideoUrl(imgInfo.url) ? 'Copy URL' : 'Copy Image'}</button>
+                            <button class="diff-civitai-btn diff-action-copy-img" data-url="${safeUrl}">📋 ${diffIsVideoUrl(imgInfo.url) ? 'Copy URL' : 'Copy Image'}</button>
                             ${!isLocal ? `<button class="diff-civitai-btn diff-action-download">⬇️ Download Image</button>` : ``}
-                            <button class="diff-civitai-btn diff-action-cover" data-url="${imgInfo.url}">🖼️ Set Cover</button>
+                            <button class="diff-civitai-btn diff-action-cover" data-url="${safeUrl}">🖼️ Set Cover</button>
                             ${diffIsVideoUrl(imgInfo.url) ? `<button class="diff-civitai-btn diff-action-play">⏸️ Pause</button>` : ''}
                             <div style="display:flex; align-items:center; gap:5px;">
                                 <button class="diff-civitai-btn diff-action-hide">${isImgHidden ? '👁️ Show' : '🙈 Hide'}</button>
@@ -312,8 +305,8 @@ app.registerExtension({
                         metaHtml += `</div>`;
 
                         mediaTag = diffIsVideoUrl(imgInfo.url)
-                            ? `<video src="${imgInfo.url}" ${window.comfyVisualDiffAutoPlay ? "autoplay" : ""} loop muted playsinline class="diff-preview-img"></video>`
-                            : `<img src="${imgInfo.url}" class="diff-preview-img">`;
+                            ? `<video src="${safeUrl}" ${window.comfyVisualDiffAutoPlay ? "autoplay" : ""} loop muted playsinline class="diff-preview-img"></video>`
+                            : `<img src="${safeUrl}" class="diff-preview-img">`;
                     } else if (isHoverOnly) {
                         metaHtml = `
                             <div class="diff-img-meta-overlay" style="justify-content:center; align-items:center; text-align:center;">
@@ -321,17 +314,19 @@ app.registerExtension({
                                     <button class="diff-civitai-btn diff-action-hide">${isImgHidden ? '👁️ Show' : '🙈 Hide'}</button>
                                     <span class="diff-img-saved-flash" style="opacity:0; color:#4ade80; font-size:11px; font-weight:bold; transition: opacity 0.3s;">Saved!</span>
                                 </div>
-                                <div style="color: #ffd700; font-weight: bold; font-size: 14px; cursor: pointer; padding: 15px; margin-top: 25px;" onclick="window.open('https://www.patreon.com/c/LX_ComfyUI', '_blank')">
+                                <div style="color: #ffd700; font-weight: bold; font-size: 14px; cursor: default; padding: 15px; margin-top: 25px;">
                                     ⭐ For more Images and Generation Infos get Pro Version of this Node by clicking on the Get Pro Version Button
                                 </div>
                             </div>
                         `;
 
+                        // FIX: escapeHTML on URL (hover-only branch reuses imgInfo.url for media tag)
+                        const safeUrl2 = diffEscapeHTML(imgInfo.url);
                         mediaTag = diffIsVideoUrl(imgInfo.url)
-                            ? `<video src="${imgInfo.url}" ${window.comfyVisualDiffAutoPlay ? "autoplay" : ""} loop muted playsinline class="diff-preview-img"></video>`
-                            : `<img src="${imgInfo.url}" class="diff-preview-img">`;
+                            ? `<video src="${safeUrl2}" ${window.comfyVisualDiffAutoPlay ? "autoplay" : ""} loop muted playsinline class="diff-preview-img"></video>`
+                            : `<img src="${safeUrl2}" class="diff-preview-img">`;
                     } else {
-                        metaHtml = `<div class="diff-pro-overlay" style="z-index:10;" onclick="window.open('https://www.patreon.com/c/LX_ComfyUI', '_blank')">⭐ For more Images and Generation Infos get Pro Version of this Node by clicking on the Get Pro Version Button</div>`;
+                        metaHtml = `<div class="diff-pro-overlay" style="z-index:10;">⭐ For more Images and Generation Infos get Pro Version of this Node by clicking on the Get Pro Version Button</div>`;
                         mediaTag = `<div style="width:100%; height:100%; background:#111;"></div>`;
                     }
 
@@ -442,12 +437,15 @@ app.registerExtension({
             const openBrowser = async (node) => {
                 let diffs = [];
                 try {
-                    const response = await api.fetchApi("/visual_diffusion/list_models");
-                    diffs = (await response.json()).models;
+                    // FIX: Parallelize independent backend calls — modal opens noticeably faster
+                    const [modelsRes, cacheRes] = await Promise.all([
+                        api.fetchApi("/visual_diffusion/list_models"),
+                        api.fetchApi("/visual_diffusion/get_cache")
+                    ]);
+                    const [modelsJson, cacheJson] = await Promise.all([modelsRes.json(), cacheRes.json()]);
+                    diffs = modelsJson.models;
                     window.comfyVisualDiffFiles = diffs;
-
-                    const cacheRes = await api.fetchApi("/visual_diffusion/get_cache");
-                    window.comfyVisualDiffusionCache = await cacheRes.json();
+                    window.comfyVisualDiffusionCache = cacheJson;
                 } catch (error) {
                     console.error("[Visual Diffusion Browser] Failed to load data from backend:", error);
                     alert("Error: Could not load data from the backend. Please check your console or ensure the server is running.");
@@ -473,7 +471,7 @@ app.registerExtension({
                 bg.innerHTML = `
                     <div class="diff-modal-content">
                         <div class="diff-modal-header">
-                            <h2>🌐 Civitai Visual Diffusion Loader by LX (Basic Version)</h2>
+                            <h2>🌐 Civitai Visual Diffusion Loader by LX</h2>
                             <div class="diff-header-controls">
                                 <button class="diff-help-btn" id="diff-help-btn" title="Visit GitHub">ℹ️ Get Help</button>
                                 <button class="diff-toggle-pro-btn" id="diff-toggle-pro-btn">${window.comfyVisualDiffHidePro ? '👁️ Show Pro Features' : '🙈 Hide Pro Features'}</button>
@@ -488,7 +486,7 @@ app.registerExtension({
                             <div class="diff-left-pane" id="diff-left-pane">
                                 <div class="diff-filter-bar">
                                     <button class="diff-civitai-btn" id="diff-global-play-btn" title="Stop or play all preview videos" style="height:30px; padding: 0 10px;">${window.comfyVisualDiffAutoPlay ? "⏸️ Pause" : "▶️ Play"}</button>
-                                    <input type="text" id="diff-filter-text" class="diff-filter-input" placeholder="Search name, alias, notes..." value="${fState.search}">
+                                    <input type="text" id="diff-filter-text" class="diff-filter-input" placeholder="Search name, alias, notes..." value="${diffEscapeHTML(fState.search)}">
                                     <div class="diff-multi-select-container" id="diff-view-multi-select">
                                         <div class="diff-multi-select-btn" id="diff-view-btn" title="Select visible data fields">View${chevronSVG}</div>
                                         <div class="diff-multi-select-dropdown" id="diff-view-dropdown">
@@ -703,8 +701,10 @@ app.registerExtension({
                 const viewDropListener = setupMultiSelect("diff-view-btn", "diff-view-dropdown");
                 const baseDropListener = setupMultiSelect("diff-base-btn", "diff-base-dropdown");
 
-                const baseCheckboxes = bg.querySelectorAll(".diff-base-cb");
-                baseCheckboxes.forEach(cb => { cb.onchange = (e) => { if (e.target.value === "all" && e.target.checked) { baseCheckboxes.forEach(c => { if (c.value !== "all") c.checked = false; }); } else if (e.target.checked) bg.querySelector(".diff-base-cb[value='all']").checked = false; filterAndSortCards(); }; });
+                // FIX: getBaseCheckboxes() always re-queries — original cached NodeList was static
+                // and missed checkboxes added later (when Civitai fetch reveals new base models)
+                const getBaseCheckboxes = () => bg.querySelectorAll(".diff-base-cb");
+                getBaseCheckboxes().forEach(cb => { cb.onchange = (e) => { if (e.target.value === "all" && e.target.checked) { getBaseCheckboxes().forEach(c => { if (c.value !== "all") c.checked = false; }); } else if (e.target.checked) bg.querySelector(".diff-base-cb[value='all']").checked = false; filterAndSortCards(); }; });
 
                 const viewCheckboxes = bg.querySelectorAll(".diff-view-cb");
                 const updateViewClasses = () => {
@@ -713,16 +713,17 @@ app.registerExtension({
                     grid.classList.toggle("diff-view-no-file", !bg.querySelector(".diff-view-cb[value='file']").checked);
                     grid.classList.toggle("diff-view-no-base", !bg.querySelector(".diff-view-cb[value='base']").checked);
 
+                    // CLEANUP: viewOptions reduced to keys that actually have checkboxes in Basic
                     window.comfyVisualDiffFilters.viewOptions = {
                         img: bg.querySelector(".diff-view-cb[value='img']").checked,
-                        alias: true,
                         file: bg.querySelector(".diff-view-cb[value='file']").checked,
                         base: bg.querySelector(".diff-view-cb[value='base']").checked
                     };
                 };
                 viewCheckboxes.forEach(cb => cb.onchange = () => { updateViewClasses(); filterAndSortCards(); });
 
-                bg.querySelector("#diff-reset-filters-btn").onclick = () => { bg.querySelector("#diff-filter-text").value = ""; bg.querySelector("#diff-filter-nsfw").value = "all"; localStorage.setItem("lx_diff_nsfw_filter", "all"); window.comfyVisualDiffSortAsc = true; baseCheckboxes.forEach(c => c.checked = (c.value === "all")); viewCheckboxes.forEach(c => c.checked = true); updateViewClasses(); filterAndSortCards(); };
+                // FIX: Reset preserves the user's NSFW filter choice — it persists across resets by design
+                bg.querySelector("#diff-reset-filters-btn").onclick = () => { bg.querySelector("#diff-filter-text").value = ""; window.comfyVisualDiffSortAsc = true; getBaseCheckboxes().forEach(c => c.checked = (c.value === "all")); viewCheckboxes.forEach(c => c.checked = true); updateViewClasses(); filterAndSortCards(); };
 
                 bg.querySelector("#diff-add-local-img-btn").onclick = (e) => {
                     const originalText = e.target.innerHTML;
@@ -757,7 +758,8 @@ app.registerExtension({
                 };
 
                 const filterAndSortCards = () => {
-                    const searchStr = bg.querySelector("#diff-filter-text").value.toLowerCase(); const reqNsfw = bg.querySelector("#diff-filter-nsfw").value; const activeBaseModels = Array.from(baseCheckboxes).filter(c => c.checked).map(c => c.value);
+                    // FIX: re-query base checkboxes each call so dynamically added entries (from Civitai fetch) are seen
+                    const searchStr = bg.querySelector("#diff-filter-text").value.toLowerCase(); const reqNsfw = bg.querySelector("#diff-filter-nsfw").value; const activeBaseModels = Array.from(getBaseCheckboxes()).filter(c => c.checked).map(c => c.value);
                     window.comfyVisualDiffFilters.search = searchStr; window.comfyVisualDiffFilters.nsfw = reqNsfw; window.comfyVisualDiffFilters.baseModels = activeBaseModels;
                     const grid = bg.querySelector("#diff-grid"); const cards = Array.from(grid.querySelectorAll(".diff-card"));
 
@@ -789,11 +791,12 @@ app.registerExtension({
                     const card = document.createElement("div"); card.className = "diff-card"; card.dataset.filename = diff.filename; card.dataset.name = diff.name;
                     const cDataStart = window.comfyVisualDiffusionCache[diff.filename] || {}; if (cDataStart.userNsfw) card.classList.add("is-diff-nsfw");
                     if (diff.filename === selectedFilename) { card.classList.add("selected"); currentlySelectedDiv = card; }
-                    const cardImgId = "diff-card-img-" + diff.filename.replace(/[^a-zA-Z0-9]/g, '_'); const cardFootId = "diff-card-foot-" + diff.filename.replace(/[^a-zA-Z0-9]/g, '_');
+                    // FIX: dropped derived IDs — updateCardPreview now finds the card via data-filename
+                    // (avoids ID collisions when two filenames sanitize to the same alphanumeric string)
 
                     card.innerHTML = `
-                        <div class="diff-card-img" id="${cardImgId}">NO DATA</div>
-                        <div class="diff-card-footer" id="${cardFootId}">
+                        <div class="diff-card-img">NO DATA</div>
+                        <div class="diff-card-footer">
                             <div class="diff-card-alias">${diffEscapeHTML(cDataStart.alias)}</div>
                             <div class="diff-card-filename">${diffEscapeHTML(diff.name)}</div>
                             <div class="diff-card-base">${diffEscapeHTML(cDataStart.baseModel) || "Unknown Model"}</div>
@@ -808,7 +811,11 @@ app.registerExtension({
 
                 updateViewClasses(); filterAndSortCards();
 
-                let noteTimeout;
+                // FIX: per-filename timeout maps. Old code used a single shared `noteTimeout`,
+                // so switching to another model within 800ms canceled the previous one's pending
+                // save → its note never reached the server. Each filename now has its own debounce.
+                const noteTimeouts = new Map();
+                const noteSavedTimeouts = new Map();
                 bg.querySelector("#diff-det-note-input").oninput = (e) => {
                     const val = e.target.value;
                     const capturedFilename = selectedFilename;
@@ -819,42 +826,55 @@ app.registerExtension({
                     if (!window.comfyVisualDiffusionCache[capturedFilename]) window.comfyVisualDiffusionCache[capturedFilename] = {};
                     window.comfyVisualDiffusionCache[capturedFilename].personalNote = val;
 
-                    clearTimeout(noteTimeout);
-                    noteTimeout = setTimeout(async () => {
+                    // Cancel any pending save FOR THIS FILENAME ONLY — pending saves for other models survive
+                    clearTimeout(noteTimeouts.get(capturedFilename));
+                    clearTimeout(noteSavedTimeouts.get(capturedFilename));
+                    noteTimeouts.set(capturedFilename, setTimeout(async () => {
                         await saveCacheToServer(capturedFilename);
+                        noteTimeouts.delete(capturedFilename);
                         if (capturedFilename === selectedFilename) {
                             status.innerText = "✅ Saved!";
                             status.style.color = "#4ade80";
+                            // Clear "✅ Saved!" after 2 seconds — only if it wasn't replaced by something else
+                            noteSavedTimeouts.set(capturedFilename, setTimeout(() => {
+                                if (status.innerText === "✅ Saved!") status.innerText = "";
+                                noteSavedTimeouts.delete(capturedFilename);
+                            }, 2000));
                         }
                         filterAndSortCards();
-                    }, 800);
+                    }, 800));
                 };
 
                 bg.querySelector("#diff-det-nsfw-check").onchange = async (e) => { const isNsfw = e.target.checked; if (!window.comfyVisualDiffusionCache[selectedFilename]) window.comfyVisualDiffusionCache[selectedFilename] = {}; window.comfyVisualDiffusionCache[selectedFilename].userNsfw = isNsfw; if (currentlySelectedDiv) currentlySelectedDiv.classList.toggle("is-diff-nsfw", isNsfw); bg.querySelector("#diff-det-gallery").classList.toggle("is-diff-nsfw-preview", isNsfw); await saveCacheToServer(selectedFilename); filterAndSortCards(); };
 
                 bg.querySelector("#diff-fetch-civitai-btn").onclick = async (e) => {
+                    // FIX: Capture selectedFilename at click time. Without this, switching to another
+                    // model mid-fetch would corrupt the cache (data written to wrong slot) and
+                    // scramble the UI. Now the fetch always finishes against the model it was started for.
+                    const capturedFilename = selectedFilename;
                     const btn = e.currentTarget; btn.style.width = "170px"; btn.classList.remove("loaded-state"); btn.innerHTML = `<span class="diff-btn-text-normal">⏳ Fetching...</span>`; btn.disabled = true;
                     try {
-                        const hashRes = await api.fetchApi("/visual_diffusion/get_hash", { method: "POST", body: JSON.stringify({ filename: selectedFilename }) });
+                        const hashRes = await api.fetchApi("/visual_diffusion/get_hash", { method: "POST", body: JSON.stringify({ filename: capturedFilename }) });
                         const hash = (await hashRes.json()).hash;
                         if (!hash) throw new Error("Could not calculate hash");
                         const civRes = await fetch(`https://civitai.com/api/v1/model-versions/by-hash/${hash}`);
                         if (!civRes.ok) throw new Error("Not found on Civitai");
                         const civData = await civRes.json();
-                        const oldData = window.comfyVisualDiffusionCache[selectedFilename] || {};
+                        const oldData = window.comfyVisualDiffusionCache[capturedFilename] || {};
                         civData.personalNote = oldData.personalNote || ""; civData.alias = oldData.alias || ""; civData.userRating = oldData.userRating || 0; civData.userNsfw = oldData.userNsfw || false; civData.customCover = oldData.customCover || "";
 
-                        window.comfyVisualDiffusionCache[selectedFilename] = civData;
-                        await saveCacheToServer(selectedFilename);
+                        window.comfyVisualDiffusionCache[capturedFilename] = civData;
+                        await saveCacheToServer(capturedFilename);
 
-                        if (currentlySelectedDiv) {
-                            const baseBadge = currentlySelectedDiv.querySelector('.diff-card-base');
+                        // FIX: Update card badge by filename lookup, not by current selection,
+                        // so the correct card updates even if user moved on
+                        const cardEl = bg.querySelector(`.diff-card[data-filename="${CSS.escape(capturedFilename)}"]`);
+                        if (cardEl) {
+                            const baseBadge = cardEl.querySelector('.diff-card-base');
                             if (baseBadge) baseBadge.innerText = civData.baseModel || "Unknown Model";
                         }
 
-                        updateRightPanel(selectedFilename);
-                        filterAndSortCards();
-
+                        // Add new base model to dropdown — independent of current selection
                         if (civData.baseModel) {
                             const drop = bg.querySelector("#diff-base-dropdown");
                             if (!Array.from(bg.querySelectorAll(".diff-base-cb")).find(cb => cb.value === civData.baseModel)) {
@@ -874,10 +894,27 @@ app.registerExtension({
                             }
                         }
 
+                        // FIX: Only update right panel if user is still viewing the model we fetched.
+                        // If user moved on, just refresh the card preview in the grid and bail out
+                        // so we don't overwrite the right panel showing the new selection.
+                        if (capturedFilename === selectedFilename) {
+                            updateRightPanel(selectedFilename);
+                        } else {
+                            updateCardPreview(bg, capturedFilename);
+                        }
+                        filterAndSortCards();
+
                     } catch (err) {
-                        btn.style.width = "170px"; btn.innerHTML = `<span class="diff-btn-text-normal">❌ Not found</span>`; bg.querySelector("#diff-det-gallery").innerHTML = `<div style="color:#cc4444; padding:20px; grid-column: 1 / -1;">Could not fetch data. The model might not be on Civitai.</div>`;
+                        // FIX: Only show error UI if user is still viewing the model we tried to fetch
+                        if (capturedFilename === selectedFilename) {
+                            btn.style.width = "170px"; btn.innerHTML = `<span class="diff-btn-text-normal">❌ Not found</span>`; bg.querySelector("#diff-det-gallery").innerHTML = `<div style="color:#cc4444; padding:20px; grid-column: 1 / -1;">Could not fetch data. The model might not be on Civitai.</div>`;
+                        }
                     }
-                    btn.disabled = false;
+                    // FIX: Only re-enable button if user is still viewing this model — otherwise
+                    // updateRightPanel() for the new selection has already set the correct state
+                    if (capturedFilename === selectedFilename) {
+                        btn.disabled = false;
+                    }
                 };
 
                 // --- KEYBOARD NAVIGATION ---

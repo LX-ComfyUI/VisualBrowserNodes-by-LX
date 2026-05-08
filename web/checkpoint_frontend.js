@@ -2,7 +2,7 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 if (!window.comfyVisualCheckpointCache) window.comfyVisualCheckpointCache = {};
-if (!window.comfyVisualBrowserColors) window.comfyVisualBrowserColors = {};
+// CLEANUP: Removed window.comfyVisualBrowserColors — Pro-version remnant, never read in Basic
 
 // --- LOCAL STORAGE INIT ---
 if (window.comfyVisualCkptHideImages === undefined) window.comfyVisualCkptHideImages = false;
@@ -15,19 +15,14 @@ if (window.comfyVisualCkptSortAsc === undefined) window.comfyVisualCkptSortAsc =
 if (!window.comfyVisualCkptFilters) {
     window.comfyVisualCkptFilters = {
         search: "",
-        rating: "0",
         nsfw: localStorage.getItem("lx_ckpt_nsfw_filter") || "all",
-        sort: "file",
-        viewOptions: { img: true, alias: true, file: true, base: true, color: true, published: false, downloaded: false, rating: false, reviews: false },
+        // CLEANUP: viewOptions reduced to fields actually used in Basic (img, file, base) —
+        // alias/color/published/downloaded/rating/reviews were Pro-only and never read here
+        viewOptions: { img: true, file: true, base: true },
         baseModels: ["all"]
     };
 }
-
-// Fallback for older caches
-if (window.comfyVisualCkptFilters.viewOptions.published === undefined) window.comfyVisualCkptFilters.viewOptions.published = false;
-if (window.comfyVisualCkptFilters.viewOptions.downloaded === undefined) window.comfyVisualCkptFilters.viewOptions.downloaded = false;
-if (window.comfyVisualCkptFilters.viewOptions.rating === undefined) window.comfyVisualCkptFilters.viewOptions.rating = false;
-if (window.comfyVisualCkptFilters.viewOptions.reviews === undefined) window.comfyVisualCkptFilters.viewOptions.reviews = false;
+// CLEANUP: Removed Pro-only viewOptions fallbacks + dead `rating`/`sort` filter fields
 
 const ckptIsVideoUrl = (url) => {
     if (!url) return false;
@@ -44,27 +39,12 @@ const ckptEscapeHTML = (str) => {
         .replace(/'/g, '&#39;');
 };
 
-const ckptSanitizeHTML = (html) => {
-    if (!html) return "";
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const badTags = doc.querySelectorAll('script, iframe, object, embed, style, link, meta, img, table');
-    badTags.forEach(el => el.remove());
-    const allElements = doc.querySelectorAll('*');
-    allElements.forEach(el => {
-        while (el.attributes.length > 0) el.removeAttribute(el.attributes[0].name);
-    });
-    doc.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
-        const b = document.createElement('strong');
-        b.innerHTML = h.innerHTML + "<br>";
-        h.replaceWith(b);
-    });
-    return doc.body.innerHTML;
-};
+// CLEANUP: Removed unused `ckptSanitizeHTML` helper — Pro-version remnant, never called in Basic
 
 // --- BASIC VERSION: COLOR SERVER SYNC REMOVED ---
 
 app.registerExtension({
-    name: "VisualCheckpointBrowserNodes-Basic-by-LX",
+    name: "VisualCheckpointBrowserNodes-by-LX-ComfyUI",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name === "VisualCheckpointLoaderLX") {
             if (!document.getElementById('lx-ckpt-browser-styles')) {
@@ -85,20 +65,24 @@ app.registerExtension({
                 .ckpt-toggle-img-btn, .ckpt-toggle-nsfw-btn, .ckpt-help-btn, .ckpt-toggle-pro-btn { background: #333; border: 1px solid #444; color: white; padding: 0 8px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; width: auto; }
                 .ckpt-toggle-img-btn:hover, .ckpt-toggle-nsfw-btn:hover, .ckpt-help-btn:hover, .ckpt-toggle-pro-btn:hover { background: #444; }
 
-                .ckpt-support-btn.ckpt-pro-btn { background: #b8860b !important; border: 1px solid #daa520 !important; color: white !important; font-weight: bold; font-size: 13px; padding: 0 10px; border-radius: 5px; cursor: pointer; transition: 0.2s;}
-                .ckpt-support-btn.ckpt-pro-btn:hover { background: #daa520 !important; }
+                /* PRO BUTTONS — visually unified with the rest of the header (matches .ckpt-help-btn) */
+                .ckpt-support-btn.ckpt-pro-btn { background: #333 !important; border: 1px solid #444 !important; color: white !important; font-weight: bold; font-size: 13px; padding: 0 10px; border-radius: 5px; cursor: pointer; transition: 0.2s;}
+                .ckpt-support-btn.ckpt-pro-btn:hover { background: #444 !important; }
 
-                .ckpt-fetch-all-btn { background: #1971c2; border: 1px solid #1c7ed6; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; width: 140px; }
-                .ckpt-fetch-all-btn:hover { background: #1c7ed6; }
+                .ckpt-fetch-all-btn { background: #333; border: 1px solid #444; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; width: 140px; }
+                .ckpt-fetch-all-btn:hover { background: #444; }
 
                 .ckpt-pro-star { cursor: pointer; color: #ffd700; font-size: 16px; margin-left: 10px; user-select: none; }
                 .ckpt-pro-msg { color: #ffd700; font-size: 12px; margin-left: 10px; font-weight: bold; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-                .ckpt-pro-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); color: #ffd700; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: bold; padding: 15px; z-index: 20; opacity: 0; transition: opacity 0.2s; cursor: pointer; font-size: 14px; line-height: 1.4; border-radius: 8px;}
+                .ckpt-pro-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); color: #ffd700; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: bold; padding: 15px; z-index: 20; opacity: 0; transition: opacity 0.2s; cursor: default; font-size: 14px; line-height: 1.4; border-radius: 8px;}
                 .ckpt-img-container:hover .ckpt-pro-overlay { opacity: 1; }
 
                 .ckpt-hide-pro-mode .ckpt-pro-row { display: none !important; }
                 .ckpt-hide-pro-mode .ckpt-hideable-pro-elem { display: none !important; }
                 .ckpt-hide-pro-mode .ckpt-hideable-pro-star { display: none !important; }
+                /* FIX: Hide-Pro toggle now also hides the top-row Pro and Load-All-Data buttons */
+                .ckpt-hide-pro-mode .ckpt-support-btn,
+                .ckpt-hide-pro-mode .ckpt-fetch-all-btn { display: none !important; }
 
                 .ckpt-modal-body { display: flex; flex: 1; overflow: hidden; position: relative;}
                 .ckpt-left-pane { display: flex; flex-direction: column; width: 55%; min-width: 300px; }
@@ -216,15 +200,22 @@ app.registerExtension({
 
             const updateCardPreview = (bg, filename) => {
                 const c = window.comfyVisualCheckpointCache[filename] || {};
-                const img = bg.querySelector(`#ckpt-card-img-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`);
-                const foot = bg.querySelector(`#ckpt-card-foot-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`);
+                // FIX: Look up card by data-filename selector instead of derived ID — avoids
+                // collisions when two filenames sanitize to the same alphanumeric string.
+                const card = bg.querySelector(`.ckpt-card[data-filename="${CSS.escape(filename)}"]`);
+                if (!card) return;
+                const img = card.querySelector('.ckpt-card-img');
+                const foot = card.querySelector('.ckpt-card-footer');
 
                 if (img) {
+                    // FIX: escapeHTML on URL — prevents attribute breakout if Civitai/cache returns a URL with quotes
                     if (c.customCover) {
-                        img.innerHTML = ckptIsVideoUrl(c.customCover) ? `<video src="${c.customCover}" ${window.comfyVisualCkptAutoPlay ? "autoplay" : ""} loop muted playsinline class="ckpt-card-media"></video>` : `<img src="${c.customCover}" class="ckpt-card-media">`;
+                        const url = ckptEscapeHTML(c.customCover);
+                        img.innerHTML = ckptIsVideoUrl(c.customCover) ? `<video src="${url}" ${window.comfyVisualCkptAutoPlay ? "autoplay" : ""} loop muted playsinline class="ckpt-card-media"></video>` : `<img src="${url}" class="ckpt-card-media">`;
                     }
                     else if (c.images?.[0]) {
-                        img.innerHTML = ckptIsVideoUrl(c.images[0].url) ? `<video src="${c.images[0].url}" ${window.comfyVisualCkptAutoPlay ? "autoplay" : ""} loop muted playsinline class="ckpt-card-media"></video>` : `<img src="${c.images[0].url}" class="ckpt-card-media">`;
+                        const url = ckptEscapeHTML(c.images[0].url);
+                        img.innerHTML = ckptIsVideoUrl(c.images[0].url) ? `<video src="${url}" ${window.comfyVisualCkptAutoPlay ? "autoplay" : ""} loop muted playsinline class="ckpt-card-media"></video>` : `<img src="${url}" class="ckpt-card-media">`;
                     }
                     else {
                         img.innerHTML = "NO DATA";
@@ -290,12 +281,14 @@ app.registerExtension({
                     let mediaTag = "";
 
                     if (isFull) {
+                        // FIX: escapeHTML on imgInfo.url — defense in depth against attribute breakout
+                        const safeUrl = ckptEscapeHTML(imgInfo.url);
                         metaHtml = `<div class="ckpt-img-meta-overlay"><div class="ckpt-img-action-btns">
                             ${m.prompt ? `<button class="ckpt-civitai-btn ckpt-action-copy-pos">📋 Copy +Prompt</button>` : ''}
                             ${m.negativePrompt ? `<button class="ckpt-civitai-btn ckpt-action-copy-neg">📋 Copy -Prompt</button>` : ''}
-                            <button class="ckpt-civitai-btn ckpt-action-copy-img" data-url="${imgInfo.url}">📋 ${ckptIsVideoUrl(imgInfo.url) ? 'Copy URL' : 'Copy Image'}</button>
+                            <button class="ckpt-civitai-btn ckpt-action-copy-img" data-url="${safeUrl}">📋 ${ckptIsVideoUrl(imgInfo.url) ? 'Copy URL' : 'Copy Image'}</button>
                             ${!isLocal ? `<button class="ckpt-civitai-btn ckpt-action-download">⬇️ Download Image</button>` : ``}
-                            <button class="ckpt-civitai-btn ckpt-action-cover" data-url="${imgInfo.url}">🖼️ Set Cover</button>
+                            <button class="ckpt-civitai-btn ckpt-action-cover" data-url="${safeUrl}">🖼️ Set Cover</button>
                             ${ckptIsVideoUrl(imgInfo.url) ? `<button class="ckpt-civitai-btn ckpt-action-play">⏸️ Pause</button>` : ''}
                             <div style="display:flex; align-items:center; gap:5px;">
                                 <button class="ckpt-civitai-btn ckpt-action-hide">${isImgHidden ? '👁️ Show' : '🙈 Hide'}</button>
@@ -312,8 +305,8 @@ app.registerExtension({
                         metaHtml += `</div>`;
 
                         mediaTag = ckptIsVideoUrl(imgInfo.url)
-                            ? `<video src="${imgInfo.url}" ${window.comfyVisualCkptAutoPlay ? "autoplay" : ""} loop muted playsinline class="ckpt-preview-img"></video>`
-                            : `<img src="${imgInfo.url}" class="ckpt-preview-img">`;
+                            ? `<video src="${safeUrl}" ${window.comfyVisualCkptAutoPlay ? "autoplay" : ""} loop muted playsinline class="ckpt-preview-img"></video>`
+                            : `<img src="${safeUrl}" class="ckpt-preview-img">`;
                     } else if (isHoverOnly) {
                         metaHtml = `
                             <div class="ckpt-img-meta-overlay" style="justify-content:center; align-items:center; text-align:center;">
@@ -321,17 +314,19 @@ app.registerExtension({
                                     <button class="ckpt-civitai-btn ckpt-action-hide">${isImgHidden ? '👁️ Show' : '🙈 Hide'}</button>
                                     <span class="ckpt-img-saved-flash" style="opacity:0; color:#4ade80; font-size:11px; font-weight:bold; transition: opacity 0.3s;">Saved!</span>
                                 </div>
-                                <div style="color: #ffd700; font-weight: bold; font-size: 14px; cursor: pointer; padding: 15px; margin-top: 25px;" onclick="window.open('https://www.patreon.com/c/LX_ComfyUI', '_blank')">
+                                <div style="color: #ffd700; font-weight: bold; font-size: 14px; cursor: default; padding: 15px; margin-top: 25px;">
                                     ⭐ For more Images and Generation Infos get Pro Version of this Node by clicking on the Get Pro Version Button
                                 </div>
                             </div>
                         `;
 
+                        // FIX: escapeHTML on URL (hover-only branch reuses imgInfo.url for media tag)
+                        const safeUrl2 = ckptEscapeHTML(imgInfo.url);
                         mediaTag = ckptIsVideoUrl(imgInfo.url)
-                            ? `<video src="${imgInfo.url}" ${window.comfyVisualCkptAutoPlay ? "autoplay" : ""} loop muted playsinline class="ckpt-preview-img"></video>`
-                            : `<img src="${imgInfo.url}" class="ckpt-preview-img">`;
+                            ? `<video src="${safeUrl2}" ${window.comfyVisualCkptAutoPlay ? "autoplay" : ""} loop muted playsinline class="ckpt-preview-img"></video>`
+                            : `<img src="${safeUrl2}" class="ckpt-preview-img">`;
                     } else {
-                        metaHtml = `<div class="ckpt-pro-overlay" style="z-index:10;" onclick="window.open('https://www.patreon.com/c/LX_ComfyUI', '_blank')">⭐ For more Images and Generation Infos get Pro Version of this Node by clicking on the Get Pro Version Button</div>`;
+                        metaHtml = `<div class="ckpt-pro-overlay" style="z-index:10;">⭐ For more Images and Generation Infos get Pro Version of this Node by clicking on the Get Pro Version Button</div>`;
                         mediaTag = `<div style="width:100%; height:100%; background:#111;"></div>`;
                     }
 
@@ -442,12 +437,15 @@ app.registerExtension({
             const openBrowser = async (node) => {
                 let ckpts = [];
                 try {
-                    const response = await api.fetchApi("/visual_checkpoint/list_models");
-                    ckpts = (await response.json()).models;
+                    // FIX: Parallelize independent backend calls — modal opens noticeably faster
+                    const [modelsRes, cacheRes] = await Promise.all([
+                        api.fetchApi("/visual_checkpoint/list_models"),
+                        api.fetchApi("/visual_checkpoint/get_cache")
+                    ]);
+                    const [modelsJson, cacheJson] = await Promise.all([modelsRes.json(), cacheRes.json()]);
+                    ckpts = modelsJson.models;
                     window.comfyVisualCkptFiles = ckpts;
-
-                    const cacheRes = await api.fetchApi("/visual_checkpoint/get_cache");
-                    window.comfyVisualCheckpointCache = await cacheRes.json();
+                    window.comfyVisualCheckpointCache = cacheJson;
                 } catch (error) {
                     console.error("[Visual Checkpoint Browser] Failed to load data from backend:", error);
                     alert("Error: Could not load data from the backend. Please check your console or ensure the server is running.");
@@ -473,7 +471,7 @@ app.registerExtension({
                 bg.innerHTML = `
                     <div class="ckpt-modal-content">
                         <div class="ckpt-modal-header">
-                            <h2>🌐 Civitai Visual Checkpoint Loader by LX (Basic Version)</h2>
+                            <h2>🌐 Civitai Visual Checkpoint Loader by LX</h2>
                             <div class="ckpt-header-controls">
                                 <button class="ckpt-help-btn" id="ckpt-help-btn" title="Visit GitHub">ℹ️ Get Help</button>
                                 <button class="ckpt-toggle-pro-btn" id="ckpt-toggle-pro-btn">${window.comfyVisualCkptHidePro ? '👁️ Show Pro Features' : '🙈 Hide Pro Features'}</button>
@@ -488,7 +486,7 @@ app.registerExtension({
                             <div class="ckpt-left-pane" id="ckpt-left-pane">
                                 <div class="ckpt-filter-bar">
                                     <button class="ckpt-civitai-btn" id="ckpt-global-play-btn" title="Stop or play all preview videos" style="height:30px; padding: 0 10px;">${window.comfyVisualCkptAutoPlay ? "⏸️ Pause" : "▶️ Play"}</button>
-                                    <input type="text" id="ckpt-filter-text" class="ckpt-filter-input" placeholder="Search name, alias, notes..." value="${fState.search}">
+                                    <input type="text" id="ckpt-filter-text" class="ckpt-filter-input" placeholder="Search name, alias, notes..." value="${ckptEscapeHTML(fState.search)}">
                                     <div class="ckpt-multi-select-container" id="ckpt-view-multi-select">
                                         <div class="ckpt-multi-select-btn" id="ckpt-view-btn" title="Select visible data fields">View${chevronSVG}</div>
                                         <div class="ckpt-multi-select-dropdown" id="ckpt-view-dropdown">
@@ -703,8 +701,10 @@ app.registerExtension({
                 const viewDropListener = setupMultiSelect("ckpt-view-btn", "ckpt-view-dropdown");
                 const baseDropListener = setupMultiSelect("ckpt-base-btn", "ckpt-base-dropdown");
 
-                const baseCheckboxes = bg.querySelectorAll(".ckpt-base-cb");
-                baseCheckboxes.forEach(cb => { cb.onchange = (e) => { if (e.target.value === "all" && e.target.checked) { baseCheckboxes.forEach(c => { if (c.value !== "all") c.checked = false; }); } else if (e.target.checked) bg.querySelector(".ckpt-base-cb[value='all']").checked = false; filterAndSortCards(); }; });
+                // FIX: getBaseCheckboxes() always re-queries — original cached NodeList was static
+                // and missed checkboxes added later (when Civitai fetch reveals new base models)
+                const getBaseCheckboxes = () => bg.querySelectorAll(".ckpt-base-cb");
+                getBaseCheckboxes().forEach(cb => { cb.onchange = (e) => { if (e.target.value === "all" && e.target.checked) { getBaseCheckboxes().forEach(c => { if (c.value !== "all") c.checked = false; }); } else if (e.target.checked) bg.querySelector(".ckpt-base-cb[value='all']").checked = false; filterAndSortCards(); }; });
 
                 const viewCheckboxes = bg.querySelectorAll(".ckpt-view-cb");
                 const updateViewClasses = () => {
@@ -713,16 +713,17 @@ app.registerExtension({
                     grid.classList.toggle("ckpt-view-no-file", !bg.querySelector(".ckpt-view-cb[value='file']").checked);
                     grid.classList.toggle("ckpt-view-no-base", !bg.querySelector(".ckpt-view-cb[value='base']").checked);
 
+                    // CLEANUP: viewOptions reduced to keys that actually have checkboxes in Basic
                     window.comfyVisualCkptFilters.viewOptions = {
                         img: bg.querySelector(".ckpt-view-cb[value='img']").checked,
-                        alias: true,
                         file: bg.querySelector(".ckpt-view-cb[value='file']").checked,
                         base: bg.querySelector(".ckpt-view-cb[value='base']").checked
                     };
                 };
                 viewCheckboxes.forEach(cb => cb.onchange = () => { updateViewClasses(); filterAndSortCards(); });
 
-                bg.querySelector("#ckpt-reset-filters-btn").onclick = () => { bg.querySelector("#ckpt-filter-text").value = ""; bg.querySelector("#ckpt-filter-nsfw").value = "all"; localStorage.setItem("lx_ckpt_nsfw_filter", "all"); window.comfyVisualCkptSortAsc = true; baseCheckboxes.forEach(c => c.checked = (c.value === "all")); viewCheckboxes.forEach(c => c.checked = true); updateViewClasses(); filterAndSortCards(); };
+                // FIX: Reset preserves the user's NSFW filter choice — it persists across resets by design
+                bg.querySelector("#ckpt-reset-filters-btn").onclick = () => { bg.querySelector("#ckpt-filter-text").value = ""; window.comfyVisualCkptSortAsc = true; getBaseCheckboxes().forEach(c => c.checked = (c.value === "all")); viewCheckboxes.forEach(c => c.checked = true); updateViewClasses(); filterAndSortCards(); };
 
                 bg.querySelector("#ckpt-add-local-img-btn").onclick = (e) => {
                     const originalText = e.target.innerHTML;
@@ -757,7 +758,8 @@ app.registerExtension({
                 };
 
                 const filterAndSortCards = () => {
-                    const searchStr = bg.querySelector("#ckpt-filter-text").value.toLowerCase(); const reqNsfw = bg.querySelector("#ckpt-filter-nsfw").value; const activeBaseModels = Array.from(baseCheckboxes).filter(c => c.checked).map(c => c.value);
+                    // FIX: re-query base checkboxes each call so dynamically added entries (from Civitai fetch) are seen
+                    const searchStr = bg.querySelector("#ckpt-filter-text").value.toLowerCase(); const reqNsfw = bg.querySelector("#ckpt-filter-nsfw").value; const activeBaseModels = Array.from(getBaseCheckboxes()).filter(c => c.checked).map(c => c.value);
                     window.comfyVisualCkptFilters.search = searchStr; window.comfyVisualCkptFilters.nsfw = reqNsfw; window.comfyVisualCkptFilters.baseModels = activeBaseModels;
                     const grid = bg.querySelector("#ckpt-grid"); const cards = Array.from(grid.querySelectorAll(".ckpt-card"));
 
@@ -789,11 +791,12 @@ app.registerExtension({
                     const card = document.createElement("div"); card.className = "ckpt-card"; card.dataset.filename = ckpt.filename; card.dataset.name = ckpt.name;
                     const cDataStart = window.comfyVisualCheckpointCache[ckpt.filename] || {}; if (cDataStart.userNsfw) card.classList.add("is-ckpt-nsfw");
                     if (ckpt.filename === selectedFilename) { card.classList.add("selected"); currentlySelectedDiv = card; }
-                    const cardImgId = "ckpt-card-img-" + ckpt.filename.replace(/[^a-zA-Z0-9]/g, '_'); const cardFootId = "ckpt-card-foot-" + ckpt.filename.replace(/[^a-zA-Z0-9]/g, '_');
+                    // FIX: dropped derived IDs — updateCardPreview now finds the card via data-filename
+                    // (avoids ID collisions when two filenames sanitize to the same alphanumeric string)
 
                     card.innerHTML = `
-                        <div class="ckpt-card-img" id="${cardImgId}">NO DATA</div>
-                        <div class="ckpt-card-footer" id="${cardFootId}">
+                        <div class="ckpt-card-img">NO DATA</div>
+                        <div class="ckpt-card-footer">
                             <div class="ckpt-card-alias">${ckptEscapeHTML(cDataStart.alias)}</div>
                             <div class="ckpt-card-filename">${ckptEscapeHTML(ckpt.name)}</div>
                             <div class="ckpt-card-base">${ckptEscapeHTML(cDataStart.baseModel) || "Unknown Model"}</div>
@@ -808,7 +811,11 @@ app.registerExtension({
 
                 updateViewClasses(); filterAndSortCards();
 
-                let noteTimeout;
+                // FIX: per-filename timeout maps. Old code used a single shared `noteTimeout`,
+                // so switching to another model within 800ms canceled the previous one's pending
+                // save → its note never reached the server. Each filename now has its own debounce.
+                const noteTimeouts = new Map();
+                const noteSavedTimeouts = new Map();
                 bg.querySelector("#ckpt-det-note-input").oninput = (e) => {
                     const val = e.target.value;
                     const capturedFilename = selectedFilename;
@@ -819,42 +826,55 @@ app.registerExtension({
                     if (!window.comfyVisualCheckpointCache[capturedFilename]) window.comfyVisualCheckpointCache[capturedFilename] = {};
                     window.comfyVisualCheckpointCache[capturedFilename].personalNote = val;
 
-                    clearTimeout(noteTimeout);
-                    noteTimeout = setTimeout(async () => {
+                    // Cancel any pending save FOR THIS FILENAME ONLY — pending saves for other models survive
+                    clearTimeout(noteTimeouts.get(capturedFilename));
+                    clearTimeout(noteSavedTimeouts.get(capturedFilename));
+                    noteTimeouts.set(capturedFilename, setTimeout(async () => {
                         await saveCacheToServer(capturedFilename);
+                        noteTimeouts.delete(capturedFilename);
                         if (capturedFilename === selectedFilename) {
                             status.innerText = "✅ Saved!";
                             status.style.color = "#4ade80";
+                            // Clear "✅ Saved!" after 2 seconds — only if it wasn't replaced by something else
+                            noteSavedTimeouts.set(capturedFilename, setTimeout(() => {
+                                if (status.innerText === "✅ Saved!") status.innerText = "";
+                                noteSavedTimeouts.delete(capturedFilename);
+                            }, 2000));
                         }
                         filterAndSortCards();
-                    }, 800);
+                    }, 800));
                 };
 
                 bg.querySelector("#ckpt-det-nsfw-check").onchange = async (e) => { const isNsfw = e.target.checked; if (!window.comfyVisualCheckpointCache[selectedFilename]) window.comfyVisualCheckpointCache[selectedFilename] = {}; window.comfyVisualCheckpointCache[selectedFilename].userNsfw = isNsfw; if (currentlySelectedDiv) currentlySelectedDiv.classList.toggle("is-ckpt-nsfw", isNsfw); bg.querySelector("#ckpt-det-gallery").classList.toggle("is-ckpt-nsfw-preview", isNsfw); await saveCacheToServer(selectedFilename); filterAndSortCards(); };
 
                 bg.querySelector("#ckpt-fetch-civitai-btn").onclick = async (e) => {
+                    // FIX: Capture selectedFilename at click time. Without this, switching to another
+                    // checkpoint mid-fetch would corrupt the cache (data written to wrong slot) and
+                    // scramble the UI. Now the fetch always finishes against the model it was started for.
+                    const capturedFilename = selectedFilename;
                     const btn = e.currentTarget; btn.style.width = "170px"; btn.classList.remove("loaded-state"); btn.innerHTML = `<span class="ckpt-btn-text-normal">⏳ Fetching...</span>`; btn.disabled = true;
                     try {
-                        const hashRes = await api.fetchApi("/visual_checkpoint/get_hash", { method: "POST", body: JSON.stringify({ filename: selectedFilename }) });
+                        const hashRes = await api.fetchApi("/visual_checkpoint/get_hash", { method: "POST", body: JSON.stringify({ filename: capturedFilename }) });
                         const hash = (await hashRes.json()).hash;
                         if (!hash) throw new Error("Could not calculate hash");
                         const civRes = await fetch(`https://civitai.com/api/v1/model-versions/by-hash/${hash}`);
                         if (!civRes.ok) throw new Error("Not found on Civitai");
                         const civData = await civRes.json();
-                        const oldData = window.comfyVisualCheckpointCache[selectedFilename] || {};
+                        const oldData = window.comfyVisualCheckpointCache[capturedFilename] || {};
                         civData.personalNote = oldData.personalNote || ""; civData.alias = oldData.alias || ""; civData.userRating = oldData.userRating || 0; civData.userNsfw = oldData.userNsfw || false; civData.customCover = oldData.customCover || "";
 
-                        window.comfyVisualCheckpointCache[selectedFilename] = civData;
-                        await saveCacheToServer(selectedFilename);
+                        window.comfyVisualCheckpointCache[capturedFilename] = civData;
+                        await saveCacheToServer(capturedFilename);
 
-                        if (currentlySelectedDiv) {
-                            const baseBadge = currentlySelectedDiv.querySelector('.ckpt-card-base');
+                        // FIX: Update card badge by filename lookup, not by current selection,
+                        // so the correct card updates even if user moved on
+                        const cardEl = bg.querySelector(`.ckpt-card[data-filename="${CSS.escape(capturedFilename)}"]`);
+                        if (cardEl) {
+                            const baseBadge = cardEl.querySelector('.ckpt-card-base');
                             if (baseBadge) baseBadge.innerText = civData.baseModel || "Unknown Model";
                         }
 
-                        updateRightPanel(selectedFilename);
-                        filterAndSortCards();
-
+                        // Add new base model to dropdown — independent of current selection
                         if (civData.baseModel) {
                             const drop = bg.querySelector("#ckpt-base-dropdown");
                             if (!Array.from(bg.querySelectorAll(".ckpt-base-cb")).find(cb => cb.value === civData.baseModel)) {
@@ -874,10 +894,27 @@ app.registerExtension({
                             }
                         }
 
+                        // FIX: Only update right panel if user is still viewing the model we fetched.
+                        // If user moved on, just refresh the card preview in the grid and bail out
+                        // so we don't overwrite the right panel showing the new selection.
+                        if (capturedFilename === selectedFilename) {
+                            updateRightPanel(selectedFilename);
+                        } else {
+                            updateCardPreview(bg, capturedFilename);
+                        }
+                        filterAndSortCards();
+
                     } catch (err) {
-                        btn.style.width = "170px"; btn.innerHTML = `<span class="ckpt-btn-text-normal">❌ Not found</span>`; bg.querySelector("#ckpt-det-gallery").innerHTML = `<div style="color:#cc4444; padding:20px; grid-column: 1 / -1;">Could not fetch data. The model might not be on Civitai.</div>`;
+                        // FIX: Only show error UI if user is still viewing the model we tried to fetch
+                        if (capturedFilename === selectedFilename) {
+                            btn.style.width = "170px"; btn.innerHTML = `<span class="ckpt-btn-text-normal">❌ Not found</span>`; bg.querySelector("#ckpt-det-gallery").innerHTML = `<div style="color:#cc4444; padding:20px; grid-column: 1 / -1;">Could not fetch data. The model might not be on Civitai.</div>`;
+                        }
                     }
-                    btn.disabled = false;
+                    // FIX: Only re-enable button if user is still viewing this model — otherwise
+                    // updateRightPanel() for the new selection has already set the correct state
+                    if (capturedFilename === selectedFilename) {
+                        btn.disabled = false;
+                    }
                 };
 
                 // --- KEYBOARD NAVIGATION ---

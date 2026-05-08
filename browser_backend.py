@@ -1,9 +1,10 @@
 import os
 import json
+import asyncio
 import hashlib
 import folder_paths
 import comfy.utils
-import comfy.sd 
+import comfy.sd
 from server import PromptServer
 from aiohttp import web
 
@@ -32,26 +33,52 @@ def load_json_cache(filepath):
     if os.path.exists(filepath):
         try:
             with open(filepath, "r", encoding="utf-8") as f: return json.load(f)
-        except: pass
+        # FIX: Narrow exception scope — bare `except:` would also swallow KeyboardInterrupt/SystemExit
+        except Exception as e:
+            print(f"[Visual Browser] Failed to load cache {filepath}: {e}")
     return {}
 
 def save_json_cache(filepath, data):
-    with open(filepath, "w", encoding="utf-8") as f: json.dump(data, f, indent=4)
+    # FIX: Atomic write — write to temp file first, then os.replace().
+    # Prevents JSON corruption if the process is killed mid-write.
+    tmp_path = filepath + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+    os.replace(tmp_path, filepath)
 
-HASH_CACHE = {}
+HASH_CACHE = {}  # filepath -> (mtime, sha256_hex)
 def calculate_sha256(filepath):
-    if filepath in HASH_CACHE: return HASH_CACHE[filepath]
+    # FIX: Cache by (mtime, hash) instead of just hash. If the LoRA file is replaced
+    # with a different model of the same filename, the stale hash would otherwise
+    # cause a wrong Civitai lookup forever until ComfyUI restart.
+    try:
+        current_mtime = os.path.getmtime(filepath)
+    except OSError:
+        return None
+
+    cached = HASH_CACHE.get(filepath)
+    if cached and cached[0] == current_mtime:
+        return cached[1]
+
     sha256_hash = hashlib.sha256()
     try:
         with open(filepath, "rb") as f:
             for byte_block in iter(lambda: f.read(4096 * 1024), b""): sha256_hash.update(byte_block)
         result = sha256_hash.hexdigest()
-        HASH_CACHE[filepath] = result
+        HASH_CACHE[filepath] = (current_mtime, result)
         return result
-    except: return None
+    # FIX: Narrow exception scope (bare except would also swallow KeyboardInterrupt/SystemExit)
+    except Exception as e:
+        print(f"[Visual Browser] Failed to hash {filepath}: {e}")
+        return None
 
 # ─── API ROUTEN GENERATOR (BASIC - REDUZIERT) ───────────────────────────────────
 def create_routes(prefix, folder_name, cache_file, img_dir, web_img_path):
+    # FIX: Per-cache asyncio lock — serializes update_cache so concurrent requests
+    # (e.g. fast typed notes + Civitai save) cannot drop each other's writes via
+    # the read-modify-write pattern below.
+    cache_lock = asyncio.Lock()
+
     @PromptServer.instance.routes.get(f"/{prefix}/list_models")
     async def list_models(request):
         models = folder_paths.get_filename_list(folder_name)
@@ -90,11 +117,28 @@ def create_routes(prefix, folder_name, cache_file, img_dir, web_img_path):
 
     @PromptServer.instance.routes.post(f"/{prefix}/update_cache")
     async def update_cache_route(request):
-        data = await request.json()
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response({"status": "error", "reason": "invalid_json"}, status=400)
+
         filename = data.get("filename")
-        cache = load_json_cache(cache_file)
-        cache[filename] = data.get("civitai_data")
-        save_json_cache(cache_file, cache)
+        civitai_data = data.get("civitai_data")
+
+        # FIX: Validate inputs — reject non-string filenames and non-dict cache values.
+        # Without this, a malformed request could write None/int/list keys into the JSON
+        # cache and corrupt it for everyone (cache[None] becomes "null" key after round-trip).
+        if not isinstance(filename, str) or not filename:
+            return web.json_response({"status": "error", "reason": "filename_must_be_nonempty_string"}, status=400)
+        if not isinstance(civitai_data, dict):
+            return web.json_response({"status": "error", "reason": "civitai_data_must_be_object"}, status=400)
+
+        # Hold the per-cache lock for the full read-modify-write so concurrent writes
+        # can't clobber each other (combined with atomic save_json_cache).
+        async with cache_lock:
+            cache = load_json_cache(cache_file)
+            cache[filename] = civitai_data
+            save_json_cache(cache_file, cache)
         return web.json_response({"status": "ok"})
 
 # Initialisiere reduzierte Routen für alle 3 Module

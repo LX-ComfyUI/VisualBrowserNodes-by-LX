@@ -1,5 +1,16 @@
-__pycache__/
-*.json
-lora_local_images/
+# 1. Lokale Dokumentation ignorieren
+README.md
+
+# 2. Bilder-Ordner ignorieren
 checkpoint_local_images/
 diffusion_local_images/
+lora_local_images/
+*_local_images/
+
+# 3. Cache und Systemdateien ignorieren
+__pycache__/
+*.py[cod]
+*$py.class
+*cache*.json
+.DS_Store
+Thumbs.db
