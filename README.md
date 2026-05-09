@@ -5,17 +5,33 @@
     <br>
 </h1>
 <p align="center">
-    <a href="#the-nodes">The Nodes</a> &nbsp; | &nbsp; <a href="#features">Features</a> &nbsp; | &nbsp; &nbsp; <a href="#installation">Installation</a> 
+    <a href="#the-nodes">The Nodes</a> &nbsp; | &nbsp; <a href="#features">Features</a> &nbsp; | &nbsp; &nbsp; <a href="#installation">Installation</a> | &nbsp; &nbsp; <a href="#how-to-use"># How to Use</a> 
 </p>
 <hr>
 
-<p align="center"> This is how the Visual Browser Nodes looks like, when you open them up, they are all similar:</p>
+## 📖 Description
+
+**The ultimate visual browser for your local LoRAs and models!** Enjoy a deep Civitai data integration. Take full control of your local library by automatically showing Civitai preview images, loading trigger words, and diving into detailed metadata inspection. 
+
+Stay organized with intelligent filtering, searching, and the ability to add personal notes to your favorite models. Perfect for content creators, it includes separated SFW and NSFW views to guarantee a safe interface for working, creating videos, or live streaming. 
+
+*Finally, your `.safetensors` files become visible, saving you from scrolling through a dead and unfriendly endless list of models and LoRAs in the default loaders.*
+
+### 📦 What's included?
+This suite provides 3 separate nodes:
+- 🌐 **Civitai Visual LoRA Loader**
+- 🌐 **Civitai Visual Checkpoint Model Loader**
+- 🌐 **Civitai Visual Diffusion Model Loader**
+
+---
+
+<p> This is how the Visual Browser Nodes looks like, when you open them up, they are all similar:</p>
 
 <img width="2048" height="1150" alt="Civitai Visual Lora Loader and Browser by LX" src="https://github.com/user-attachments/assets/21caf9e2-0162-483a-8340-f2de451dbb1d" />
 <br>
 
 ---
-# The Nodes
+## The Nodes
 Here are my three Nodes in the ComfyUI Canvas Workspace:
 
 <img width="1516" height="735" alt="The Nodes Civitai Visual Loaders and Browsers by LX" src="https://github.com/user-attachments/assets/fc1e2066-a4a2-4de1-a286-8a266b660c2e" />
@@ -32,7 +48,7 @@ Say goodbye to endless, confusing dropdown menus and hello to a sleek visual int
 
 ---
 
-# Features
+## Features
 
 * **🖼️ Visual Grid Interface:** View your local models as a clean, responsive grid of thumbnails instead of text lists.
 * **🔍 Quick Search:** Instantly filter your models by file name or folder.
@@ -58,26 +74,23 @@ Say goodbye to endless, confusing dropdown menus and hello to a sleek visual int
 
 ---
 
-# Installation
+## Installation
 
-* **Method 1: Manual Installation**
+* **Method 1: ComfyUI Manager**<br>
+  1. Open the "Manager".<br>
+  2. Click on "Custom Nodes Manager".<br>
+  3. Search for **"Civitai Visual Browser & Loader by LX"**.<br>
+  4. Click Install and restart ComfyUI.
+
+* **Method 2: Manual Installation**
   Navigate to your ComfyUI custom_nodes folder in your terminal/command prompt:
 
   ```bash
-  cd ComfyUI/custom_nodes
-  #Clone this repository:
+  #cd ComfyUI/custom_nodes
+  #Clone my repository:
   git clone https://github.com/LX-ComfyUI/VisualBrowserNodes-by-LX.git
 
-Restart ComfyUI.
-
-* **Method 2: ComfyUI Manager** (actually not working, use Method 2)<br>
-  1. Open the ComfyUI Manager.<br>
-  2. Click on Install Custom Nodes.<br>
-  3. Search for Visual Browser Nodes by LX.<br>
-  4. Click Install and restart ComfyUI.
-
-
-
+Restart ComfyUI!
 
 ---
 
@@ -99,7 +112,59 @@ Click the big "🌐 Open Visual LoRA Browser" button on the node to launch the v
 
 ---
 
-# Support & Feedback:
+## First opening and loading data from Civitai:
+
+<br>
+
+1. Select a model by clicking on one of the boxes on the left side:
+
+<br>
+
+<img width="2524" height="1220" alt="image" src="https://github.com/user-attachments/assets/3a9cb993-a2e9-42f5-bfb8-f1f4bb258bb4" />
+
+---
+
+<br>
+
+2. Once selected, the model is highlighted in blue. On the right side, you will see the model information panel, which is empty at first:
+
+<br>
+
+<img width="1618" height="1202" alt="image" src="https://github.com/user-attachments/assets/688bc75a-e4a0-4be6-b39a-efc81480fa96" />
+
+---
+
+<br>
+
+3. Click the **Load Data from Civitai** Button:
+
+<br>
+
+<img width="1106" height="454" alt="image" src="https://github.com/user-attachments/assets/f47cdc96-c4f0-4f96-9b9c-6fd9ea875629" />
+
+---
+
+<br>
+
+4. The data is successfully loaded! You can now see all the details for this specific model fetched directly from Civitai:
+
+<br>
+
+<img width="1088" height="839" alt="image" src="https://github.com/user-attachments/assets/272678da-a278-4824-8908-8c1113ca6723" />
+
+---
+
+<br>
+
+5. Hover over the preview images to reveal detailed generation data (prompts, settings, etc.) showing exactly how each image or video was created:
+
+<br>
+
+<img width="1084" height="843" alt="image" src="https://github.com/user-attachments/assets/b832c53b-86c2-4040-9313-80d683e6a172" />
+
+---
+
+## Support & Feedback:
 
 If you run into any issues or have feature requests, feel free to open an issue on GitHub.
 
