@@ -14,3 +14,6 @@ __pycache__/
 *cache*.json
 .DS_Store
 Thumbs.db
+
+# 4. Archive und Backups ignorieren
+*.zip

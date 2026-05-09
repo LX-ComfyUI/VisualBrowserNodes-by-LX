@@ -1,18 +1,13 @@
 [project]
-# Der interne Systemname (nur Kleinbuchstaben, Bindestriche erlaubt, ohne Leerzeichen)
-name = "civitai-visual-browser-loader-by-lx"
+name = "visualbrowsernodes-by-lx"
 version = "1.0.0"
-description = "A visual browser and loader node for LoRAs and Checkpoints featuring Civitai data integration, preview images, metadata inspection, filtering and more."
+description = "A visual browser and loader node for LoRAs and Checkpoints featuring Civitai data integration, preview images, metadata inspection, filtering, customisation and more."
 dependencies = []
 
 [project.urls]
-# Dieser Link wird von der Comfy Registry verwendet, um Nutzer zu deinem Code zu leiten
 Repository = "https://github.com/LX-ComfyUI/VisualBrowserNodes-by-LX"
 
 [tool.comfy]
-# WICHTIG: Das ist deine weltweit eindeutige Publisher-ID. 
-# Sie muss exakt mit der ID übereinstimmen, die du dir auf https://registry.comfy.org anlegst!
 PublisherId = "lx-comfyui"
-
-# Der schöne, lesbare Name, wie er den Nutzern im Manager angezeigt wird
-DisplayName = "🌐 Civitai Visual Browser & Loader by LX"
+DisplayName = "Civitai Visual Browser & Loader by LX"
+Icon = "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f310.png"
