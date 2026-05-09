@@ -485,14 +485,14 @@ app.registerExtension({
                                                     <span id="lora-det-base-container" style="color:#555;">Click 'Load Data from Civitai' above</span>
                                                 </td>
                                             </tr>
-                                            <tr><td style="vertical-align: middle;">NSFW</td><td style="vertical-align: middle;"><label class="lora-nsfw-wrapper">Contains NSFW <input type="checkbox" id="lora-det-nsfw-check" class="lora-nsfw-checkbox"></label></td></tr>
+                                            <tr><td style="vertical-align: middle;">NSFW</td><td style="vertical-align: middle;"><label class="lora-nsfw-wrapper"><input type="checkbox" id="lora-det-nsfw-check" class="lora-nsfw-checkbox"></label></td></tr>
                                             <tr><td>Personal Notes</td><td><div style="display:flex; align-items:center;"><input type="text" id="lora-det-note-input" placeholder="Add personal notes here..." style="flex:1; background:#222; border:1px solid #444; color:#fff; padding:6px; border-radius:4px; font-size:13px;"><span id="lora-note-save-status" style="margin-left:10px; font-size:12px; font-weight:bold; width:60px;"></span></div></td></tr>
                                             <tr><td>Trigger Words</td><td id="lora-det-triggers">-</td></tr>
                                         </table>
                                         <div class="lora-preview-gallery" id="lora-det-gallery"><div style="width:100%; display:flex; align-items:center; justify-content:center; color:#555; background:#111; border-radius:8px; grid-column: 1 / -1; height: 100px;">Click 'Load Data from Civitai' above</div></div>
                                     </div>
                                 </div>
-                                <div class="lora-bottom-action-bar"><button class="lora-local-img-btn hideable-pro-elem" id="lora-add-local-img-btn">➕ Add Local Media</button><button class="lora-select-btn" id="lora-confirm-btn">Use This LoRA</button></div>
+                                <div class="lora-bottom-action-bar"><button class="lora-local-img-btn" id="lora-add-local-img-btn">➕ Add Local Media</button><button class="lora-select-btn" id="lora-confirm-btn">Use This LoRA</button></div>
                             </div>
                         </div>
                     </div>
@@ -531,7 +531,6 @@ app.registerExtension({
 
                     bg.querySelector("#lora-det-note-input").value = cachedData.personalNote || "";
                     bg.querySelector("#lora-note-save-status").innerText = "";
-                    bg.querySelectorAll("#lora-det-rating span").forEach(s => { s.classList.toggle("gold", parseInt(s.dataset.val) <= (cachedData.userRating || 0)); });
                     bg.querySelector("#lora-det-nsfw-check").checked = cachedData.userNsfw || false;
                     bg.querySelector("#lora-det-gallery").classList.toggle("is-lora-nsfw-preview", cachedData.userNsfw || false);
 

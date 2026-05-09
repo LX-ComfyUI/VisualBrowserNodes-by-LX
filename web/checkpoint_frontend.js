@@ -6,7 +6,6 @@ if (!window.comfyVisualCheckpointCache) window.comfyVisualCheckpointCache = {};
 
 // --- LOCAL STORAGE INIT ---
 if (window.comfyVisualCkptHideImages === undefined) window.comfyVisualCkptHideImages = false;
-if (window.comfyVisualCkptHidePro === undefined) window.comfyVisualCkptHidePro = localStorage.getItem("lx_ckpt_hide_pro") === "true";
 if (window.comfyVisualCkptAutoPlay === undefined) window.comfyVisualCkptAutoPlay = true;
 if (window.comfyVisualCkptNsfwState === undefined) {
     window.comfyVisualCkptNsfwState = parseInt(localStorage.getItem("lx_ckpt_nsfw_state") || "0");
@@ -57,32 +56,13 @@ app.registerExtension({
                 .ckpt-modal-header h2 { margin: 0; color: #fff; font-size: 20px; }
 
                 .ckpt-header-controls { display: flex; gap: 10px; align-items: center; }
-                .ckpt-close-btn, .ckpt-toggle-img-btn, .ckpt-toggle-nsfw-btn, .ckpt-help-btn, .ckpt-toggle-pro-btn, .ckpt-support-btn, .ckpt-fetch-all-btn { height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+                .ckpt-close-btn, .ckpt-toggle-img-btn, .ckpt-toggle-nsfw-btn, .ckpt-help-btn { height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
 
                 .ckpt-close-btn { background: #cc4444; border: none; color: white; width: 32px; padding: 0; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; }
                 .ckpt-close-btn:hover { background: #ee5555; }
 
-                .ckpt-toggle-img-btn, .ckpt-toggle-nsfw-btn, .ckpt-help-btn, .ckpt-toggle-pro-btn { background: #333; border: 1px solid #444; color: white; padding: 0 8px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; width: auto; }
-                .ckpt-toggle-img-btn:hover, .ckpt-toggle-nsfw-btn:hover, .ckpt-help-btn:hover, .ckpt-toggle-pro-btn:hover { background: #444; }
-
-                /* PRO BUTTONS — visually unified with the rest of the header (matches .ckpt-help-btn) */
-                .ckpt-support-btn.ckpt-pro-btn { background: #333 !important; border: 1px solid #444 !important; color: white !important; font-weight: bold; font-size: 13px; padding: 0 10px; border-radius: 5px; cursor: pointer; transition: 0.2s;}
-                .ckpt-support-btn.ckpt-pro-btn:hover { background: #444 !important; }
-
-                .ckpt-fetch-all-btn { background: #333; border: 1px solid #444; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; width: 140px; }
-                .ckpt-fetch-all-btn:hover { background: #444; }
-
-                .ckpt-pro-star { cursor: pointer; color: #ffd700; font-size: 16px; margin-left: 10px; user-select: none; }
-                .ckpt-pro-msg { color: #ffd700; font-size: 12px; margin-left: 10px; font-weight: bold; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-                .ckpt-pro-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); color: #ffd700; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: bold; padding: 15px; z-index: 20; opacity: 0; transition: opacity 0.2s; cursor: default; font-size: 14px; line-height: 1.4; border-radius: 8px;}
-                .ckpt-img-container:hover .ckpt-pro-overlay { opacity: 1; }
-
-                .ckpt-hide-pro-mode .ckpt-pro-row { display: none !important; }
-                .ckpt-hide-pro-mode .ckpt-hideable-pro-elem { display: none !important; }
-                .ckpt-hide-pro-mode .ckpt-hideable-pro-star { display: none !important; }
-                /* FIX: Hide-Pro toggle now also hides the top-row Pro and Load-All-Data buttons */
-                .ckpt-hide-pro-mode .ckpt-support-btn,
-                .ckpt-hide-pro-mode .ckpt-fetch-all-btn { display: none !important; }
+                .ckpt-toggle-img-btn, .ckpt-toggle-nsfw-btn, .ckpt-help-btn { background: #333; border: 1px solid #444; color: white; padding: 0 8px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; width: auto; }
+                .ckpt-toggle-img-btn:hover, .ckpt-toggle-nsfw-btn:hover, .ckpt-help-btn:hover { background: #444; }
 
                 .ckpt-modal-body { display: flex; flex: 1; overflow: hidden; position: relative;}
                 .ckpt-left-pane { display: flex; flex-direction: column; width: 55%; min-width: 300px; }
@@ -228,18 +208,6 @@ app.registerExtension({
 
             const copyImageToClipboard = async (url) => { try { const r = await fetch(url); const b = await r.blob(); await navigator.clipboard.write([new ClipboardItem({ [b.type]: b })]); return true; } catch (e) { return false; } };
 
-            const setupProStar = (bg, starId, msgId, text) => {
-                const star = bg.querySelector("#" + starId);
-                const msg = bg.querySelector("#" + msgId);
-                if(star && msg) {
-                    star.onclick = () => {
-                        msg.innerText = text;
-                        msg.style.opacity = 1;
-                        setTimeout(() => msg.style.opacity = 0, 5000);
-                    };
-                }
-            };
-
             const renderCivitaiData = (civData, bg, selectedFilename) => {
                 const civBtn = bg.querySelector("#ckpt-fetch-civitai-btn");
                 civBtn.classList.add("loaded-state");
@@ -259,16 +227,9 @@ app.registerExtension({
 
                 bg.querySelector("#ckpt-det-base-container").innerHTML = `<span class="ckpt-badge-base">${ckptEscapeHTML(civData.baseModel || "Unknown")}</span>`;
                 bg.querySelector("#ckpt-det-base-container").style.color = "";
-                bg.querySelector("#ckpt-base-star").style.display = "inline-block";
-
-                setupProStar(bg, "ckpt-civ-star", "ckpt-civ-msg", "for Download and Review Infos you need pro version");
-                setupProStar(bg, "ckpt-base-star", "ckpt-base-msg", "for published date and downloaded date you need pro version");
-                setupProStar(bg, "ckpt-about-star", "ckpt-about-msg", "for this function you need pro version");
-                setupProStar(bg, "ckpt-desc-star", "ckpt-desc-msg", "for this function you need pro version");
 
                 const renderImageContainer = (imgInfo, isLocal, idx) => {
-                    const isFull = idx < 2;
-                    const isHoverOnly = idx >= 2 && idx <= 3;
+                    const isFull = true;
 
                     const m = imgInfo.meta || {};
                     const cont = document.createElement("div"); cont.className = "ckpt-img-container";
@@ -307,27 +268,6 @@ app.registerExtension({
                         mediaTag = ckptIsVideoUrl(imgInfo.url)
                             ? `<video src="${safeUrl}" ${window.comfyVisualCkptAutoPlay ? "autoplay" : ""} loop muted playsinline class="ckpt-preview-img"></video>`
                             : `<img src="${safeUrl}" class="ckpt-preview-img">`;
-                    } else if (isHoverOnly) {
-                        metaHtml = `
-                            <div class="ckpt-img-meta-overlay" style="justify-content:center; align-items:center; text-align:center;">
-                                <div style="position:absolute; top:10px; left:10px; display:flex; align-items:center; gap:5px;">
-                                    <button class="ckpt-civitai-btn ckpt-action-hide">${isImgHidden ? '👁️ Show' : '🙈 Hide'}</button>
-                                    <span class="ckpt-img-saved-flash" style="opacity:0; color:#4ade80; font-size:11px; font-weight:bold; transition: opacity 0.3s;">Saved!</span>
-                                </div>
-                                <div style="color: #ffd700; font-weight: bold; font-size: 14px; cursor: default; padding: 15px; margin-top: 25px;">
-                                    ⭐ For more Images and Generation Infos get Pro Version of this Node by clicking on the Get Pro Version Button
-                                </div>
-                            </div>
-                        `;
-
-                        // FIX: escapeHTML on URL (hover-only branch reuses imgInfo.url for media tag)
-                        const safeUrl2 = ckptEscapeHTML(imgInfo.url);
-                        mediaTag = ckptIsVideoUrl(imgInfo.url)
-                            ? `<video src="${safeUrl2}" ${window.comfyVisualCkptAutoPlay ? "autoplay" : ""} loop muted playsinline class="ckpt-preview-img"></video>`
-                            : `<img src="${safeUrl2}" class="ckpt-preview-img">`;
-                    } else {
-                        metaHtml = `<div class="ckpt-pro-overlay" style="z-index:10;">⭐ For more Images and Generation Infos get Pro Version of this Node by clicking on the Get Pro Version Button</div>`;
-                        mediaTag = `<div style="width:100%; height:100%; background:#111;"></div>`;
                     }
 
                     cont.innerHTML = `${mediaTag}${isLocal ? `<div class="ckpt-local-watermark">Local Image</div>` : ""}${metaHtml}`;
@@ -396,7 +336,7 @@ app.registerExtension({
                         cont.querySelector('.ckpt-action-cover').onclick = async (e) => { window.comfyVisualCheckpointCache[selectedFilename].customCover = imgInfo.url; await saveCacheToServer(selectedFilename); updateCardPreview(bg, selectedFilename); e.target.innerText = "✅ Set!"; setTimeout(() => e.target.innerText = "🖼️ Set Cover", 2000); };
                     }
 
-                    if (isFull || isHoverOnly) {
+                    if (isFull) {
                         const hideBtn = cont.querySelector('.ckpt-action-hide');
                         if (hideBtn) {
                             hideBtn.onclick = (e) => {
@@ -454,7 +394,6 @@ app.registerExtension({
 
                 const bg = document.createElement("div"); bg.className = "ckpt-modal-bg";
                 if (window.comfyVisualCkptHideImages) bg.classList.add("ckpt-hide-images-mode");
-                if (window.comfyVisualCkptHidePro) bg.classList.add("ckpt-hide-pro-mode");
 
                 const nsfwStates = [{ label: "🔞 Hide NSFW", cls: "" }, { label: "🫣 Peek NSFW", cls: "ckpt-hide-nsfw-full" }, { label: "👀 Show NSFW", cls: "ckpt-peek-nsfw" }];
                 let currentNsfwState = window.comfyVisualCkptNsfwState;
@@ -474,9 +413,6 @@ app.registerExtension({
                             <h2>🌐 Civitai Visual Checkpoint Loader by LX</h2>
                             <div class="ckpt-header-controls">
                                 <button class="ckpt-help-btn" id="ckpt-help-btn" title="Visit GitHub">ℹ️ Get Help</button>
-                                <button class="ckpt-toggle-pro-btn" id="ckpt-toggle-pro-btn">${window.comfyVisualCkptHidePro ? '👁️ Show Pro Features' : '🙈 Hide Pro Features'}</button>
-                                <button class="ckpt-support-btn ckpt-pro-btn" id="ckpt-support-btn" title="Get Pro Version">⭐ Get Pro Version</button>
-                                <button class="ckpt-fetch-all-btn" id="ckpt-fetch-all-btn" title="Load missing data"><span class="ckpt-btn-text-normal">🌐 Load All Data</span></button>
                                 <button class="ckpt-toggle-nsfw-btn" id="ckpt-toggle-nsfw-btn">${nsfwStates[currentNsfwState].label}</button>
                                 <button class="ckpt-toggle-img-btn" id="ckpt-toggle-img-btn">${window.comfyVisualCkptHideImages ? '👁️ Show Images' : '🙈 Hide Images'}</button>
                                 <button class="ckpt-close-btn" id="ckpt-close-modal" title="Esc">X</button>
@@ -500,21 +436,7 @@ app.registerExtension({
                                         <div class="ckpt-multi-select-dropdown" id="ckpt-base-dropdown">${baseModelOptions}</div>
                                     </div>
 
-                                    <div class="ckpt-pro-trap ckpt-hideable-pro-elem" id="ckpt-trap-rating" style="position:relative; display:flex; align-items:center;">
-                                        <select id="ckpt-filter-rating" class="ckpt-filter-select" title="Filter by your personal rating" style="pointer-events:none;"><option value="0">All Ratings</option></select>
-                                        <div id="ckpt-trap-rating-overlay" style="position:absolute; inset:0; cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:5px; font-size:13px; font-weight:bold; color:#ffd700; opacity:0; background:#111; border: 1px solid #444; transition: 0.2s; z-index:10;">⭐ Get Pro</div>
-                                    </div>
-
                                     <select id="ckpt-filter-nsfw" class="ckpt-filter-select" title="Filter SFW / NSFW"><option value="all" ${fState.nsfw === "all" ? "selected" : ""}>SFW & NSFW</option><option value="sfw" ${fState.nsfw === "sfw" ? "selected" : ""}>SFW Only</option><option value="nsfw" ${fState.nsfw === "nsfw" ? "selected" : ""}>NSFW Only</option></select>
-
-                                    <div class="ckpt-sort-group ckpt-hideable-pro-elem" style="position:relative;">
-                                        <div class="ckpt-sort-label">Sort by:</div>
-                                        <select id="ckpt-sort-select" class="ckpt-sort-select" title="Change sorting order" style="pointer-events:none; border:none;">
-                                            <option value="file">File Name</option>
-                                        </select>
-                                        <button class="ckpt-sort-dir-btn" id="ckpt-sort-dir-btn" style="pointer-events:none;">▼</button>
-                                        <div id="ckpt-trap-sort-overlay" style="position:absolute; inset:0; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; color:#ffd700; opacity:0; background:#111; transition: 0.2s; z-index:10;">⭐ Get Pro</div>
-                                    </div>
 
                                     <button class="ckpt-reset-filter-btn" id="ckpt-reset-filters-btn" title="Reset all filters to default">✖</button>
                                 </div>
@@ -527,17 +449,12 @@ app.registerExtension({
                                     <div id="ckpt-det-content" style="display:none; flex-direction:column; flex:1;">
                                         <table class="ckpt-details-table">
                                             <tr><td>File</td><td id="ckpt-det-file">...</td></tr>
-                                            <tr class="ckpt-pro-row"><td>Personal Alias</td><td><div style="display:flex; align-items:center;">
-                                                <input type="text" id="ckpt-det-alias-input" value="Enter Alias..." readonly style="width:100px; background:#222; border:1px solid #444; color:#888; padding:6px; border-radius:4px; font-size:13px; cursor:not-allowed;">
-                                                <span class="ckpt-pro-star" id="ckpt-alias-star">⭐</span><span class="ckpt-pro-msg" id="ckpt-alias-msg"></span>
-                                            </div></td></tr>
                                             <tr>
                                                 <td>Civitai Info</td>
                                                 <td>
                                                     <div style="display:flex; flex-wrap:wrap; align-items:center;">
                                                         <span id="ckpt-civitai-link-container" style="display:none;"></span>
                                                         <button class="ckpt-civitai-btn" id="ckpt-fetch-civitai-btn" style="white-space:nowrap; display:inline-flex; align-items:center; justify-content:center; padding: 5px 12px; height: 28px; box-sizing: border-box; width: 170px;"><span class="ckpt-btn-text-normal">🌐 Load Data from Civitai</span></button>
-                                                        <span class="ckpt-pro-star ckpt-hideable-pro-star" id="ckpt-civ-star">⭐</span><span class="ckpt-pro-msg" id="ckpt-civ-msg"></span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -546,62 +463,21 @@ app.registerExtension({
                                                 <td>
                                                     <div style="display:flex; align-items:center; flex-wrap: wrap;">
                                                         <span id="ckpt-det-base-container" style="color:#555;">Click 'Load Data from Civitai' above</span>
-                                                        <span class="ckpt-pro-star ckpt-hideable-pro-star" id="ckpt-base-star" style="display:none; margin-left:8px;">⭐</span><span class="ckpt-pro-msg" id="ckpt-base-msg"></span>
                                                     </div>
                                                 </td>
                                             </tr>
-                                            <tr class="ckpt-pro-row">
-                                                <td>Personal Color</td>
-                                                <td>
-                                                    <div id="ckpt-color-picker-container" style="display:flex; align-items:center; position: relative;">
-                                                        <div id="ckpt-color-btn" class="ckpt-civitai-btn" style="background: transparent; border: 1px solid #444; width: 180px; text-align: left; display:flex; justify-content:space-between; align-items:center;">Set Color <span>▼</span></div>
-                                                        <span class="ckpt-pro-star" id="ckpt-color-star">⭐</span><span class="ckpt-pro-msg" id="ckpt-color-msg"></span>
-                                                        <div id="ckpt-color-dropdown" class="ckpt-multi-select-dropdown" style="width: 180px; padding: 5px; display: none; left: 0;"></div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr class="ckpt-pro-row"><td>Personal Rating</td><td><div style="display:flex; align-items:center;"><div id="ckpt-det-rating" class="ckpt-star-rating"><span data-val="1">★</span><span data-val="2">★</span><span data-val="3">★</span><span data-val="4">★</span><span data-val="5">★</span></div><span class="ckpt-pro-star" id="ckpt-rating-star">⭐</span><span class="ckpt-pro-msg" id="ckpt-rating-msg"></span></div></td></tr>
-                                            <tr><td style="vertical-align: middle;">NSFW</td><td style="vertical-align: middle;"><label class="ckpt-nsfw-wrapper">Contains NSFW <input type="checkbox" id="ckpt-det-nsfw-check" class="ckpt-nsfw-checkbox"></label></td></tr>
+                                            <tr><td style="vertical-align: middle;">NSFW</td><td style="vertical-align: middle;"><label class="ckpt-nsfw-wrapper"><input type="checkbox" id="ckpt-det-nsfw-check" class="ckpt-nsfw-checkbox"></label></td></tr>
                                             <tr><td>Personal Notes</td><td><div style="display:flex; align-items:center;"><input type="text" id="ckpt-det-note-input" placeholder="Add personal notes here..." style="flex:1; background:#222; border:1px solid #444; color:#fff; padding:6px; border-radius:4px; font-size:13px;"><span id="ckpt-note-save-status" style="margin-left:10px; font-size:12px; font-weight:bold; width:60px;"></span></div></td></tr>
-                                            <tr class="ckpt-pro-row"><td style="vertical-align:top; padding-top:6px;">About this version</td><td><div style="display:flex; align-items:center;"><span class="ckpt-pro-star" id="ckpt-about-star" style="margin-left:0;">⭐</span><span class="ckpt-pro-msg" id="ckpt-about-msg"></span></div></td></tr>
-                                            <tr class="ckpt-pro-row"><td style="vertical-align:top; padding-top:6px;">Model Description</td><td><div style="display:flex; align-items:center;"><span class="ckpt-pro-star" id="ckpt-desc-star" style="margin-left:0;">⭐</span><span class="ckpt-pro-msg" id="ckpt-desc-msg"></span></div></td></tr>
                                         </table>
                                         <div class="ckpt-preview-gallery" id="ckpt-det-gallery"><div style="width:100%; display:flex; align-items:center; justify-content:center; color:#555; background:#111; border-radius:8px; grid-column: 1 / -1; height: 100px;">Click 'Load Data from Civitai' above</div></div>
                                     </div>
                                 </div>
-                                <div class="ckpt-bottom-action-bar"><button class="ckpt-local-img-btn ckpt-hideable-pro-elem" id="ckpt-add-local-img-btn">➕ Add Local Media</button><button class="ckpt-select-btn" id="ckpt-confirm-btn">Use This Checkpoint</button></div>
+                                <div class="ckpt-bottom-action-bar"><button class="ckpt-local-img-btn" id="ckpt-add-local-img-btn">➕ Add Local Media</button><button class="ckpt-select-btn" id="ckpt-confirm-btn">Use This Checkpoint</button></div>
                             </div>
                         </div>
                     </div>
                 `;
                 document.body.appendChild(bg);
-
-                bg.querySelector("#ckpt-toggle-pro-btn").onclick = (e) => {
-                    window.comfyVisualCkptHidePro = !window.comfyVisualCkptHidePro;
-                    localStorage.setItem("lx_ckpt_hide_pro", window.comfyVisualCkptHidePro);
-                    if (window.comfyVisualCkptHidePro) {
-                        bg.classList.add("ckpt-hide-pro-mode");
-                        e.target.innerText = "👁️ Show Pro Features";
-                    } else {
-                        bg.classList.remove("ckpt-hide-pro-mode");
-                        e.target.innerText = "🙈 Hide Pro Features";
-                    }
-                };
-
-                const bindTrap = (overlayId) => {
-                    const overlay = bg.querySelector("#" + overlayId);
-                    overlay.onclick = () => {
-                        overlay.style.opacity = 1;
-                        setTimeout(() => { overlay.style.opacity = 0; }, 2000);
-                    };
-                };
-                bindTrap("ckpt-trap-rating-overlay");
-                bindTrap("ckpt-trap-sort-overlay");
-
-                bg.querySelector("#ckpt-support-btn").onclick = () => window.open("https://www.patreon.com/c/LX_ComfyUI", "_blank");
-                setupProStar(bg, "ckpt-alias-star", "ckpt-alias-msg", "for this function you need pro version");
-                setupProStar(bg, "ckpt-color-star", "ckpt-color-msg", "This color syncs across all nodes for this Base Model. for this function you need pro version");
-                setupProStar(bg, "ckpt-rating-star", "ckpt-rating-msg", "for this function you need pro version");
 
                 const playBtn = bg.querySelector("#ckpt-global-play-btn");
                 const updateGlobalPlayState = () => {
@@ -622,29 +498,6 @@ app.registerExtension({
                     updateGlobalPlayState();
                 };
 
-                const colorBtn = bg.querySelector("#ckpt-color-btn");
-                const colorDropdown = bg.querySelector("#ckpt-color-dropdown");
-
-                const renderColorOptions = () => {
-                    colorDropdown.innerHTML = `<div class="ckpt-color-item no-color" data-val="No Color">⚪ No Color</div>`;
-                    colorDropdown.querySelector(".no-color").onclick = (e) => {
-                        colorDropdown.style.display = "none";
-                    };
-                };
-
-                colorBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    renderColorOptions();
-                    colorDropdown.style.display = colorDropdown.style.display === "none" ? "block" : "none";
-                };
-
-                const colorDropClickListener = (e) => {
-                    if (colorDropdown && colorBtn && !colorDropdown.contains(e.target) && !colorBtn.contains(e.target)) {
-                        colorDropdown.style.display = 'none';
-                    }
-                };
-                document.addEventListener('click', colorDropClickListener);
-
                 bg.querySelector("#ckpt-help-btn").onclick = () => window.open("https://github.com/LX-ComfyUI", "_blank");
 
                 const updateRightPanel = (filename) => {
@@ -657,7 +510,6 @@ app.registerExtension({
 
                     bg.querySelector("#ckpt-det-note-input").value = cachedData.personalNote || "";
                     bg.querySelector("#ckpt-note-save-status").innerText = "";
-                    bg.querySelectorAll("#ckpt-det-rating span").forEach(s => { s.classList.toggle("gold", parseInt(s.dataset.val) <= (cachedData.userRating || 0)); });
                     bg.querySelector("#ckpt-det-nsfw-check").checked = cachedData.userNsfw || false;
                     bg.querySelector("#ckpt-det-gallery").classList.toggle("is-ckpt-nsfw-preview", cachedData.userNsfw || false);
 
@@ -669,7 +521,6 @@ app.registerExtension({
                         bg.querySelector("#ckpt-civitai-link-container").style.display = "none";
                         bg.querySelector("#ckpt-det-base-container").innerHTML = "Click 'Load Data from Civitai' above";
                         bg.querySelector("#ckpt-det-base-container").style.color = "#555";
-                        bg.querySelector("#ckpt-base-star").style.display = "none";
                         bg.querySelector("#ckpt-det-gallery").innerHTML = `<div style="width:100%; display:flex; align-items:center; justify-content:center; color:#555; background:#111; border-radius:8px; grid-column: 1 / -1; height: 100px;">Click 'Load Data from Civitai' above</div>`;
 
                         civBtn.style.width = "170px";
@@ -677,17 +528,6 @@ app.registerExtension({
                         civBtn.innerHTML = `<span class="ckpt-btn-text-normal">🌐 Load Data from Civitai</span>`;
                         civBtn.disabled = false;
                     }
-                };
-
-                bg.querySelector("#ckpt-fetch-all-btn").onclick = (e) => {
-                    const btnSpan = e.currentTarget.querySelector(".ckpt-btn-text-normal");
-                    const origText = btnSpan.innerText;
-                    btnSpan.innerText = "⭐ Get Pro";
-                    btnSpan.style.color = "#ffd700";
-                    setTimeout(() => {
-                        btnSpan.innerText = origText;
-                        btnSpan.style.color = "";
-                    }, 2000);
                 };
 
                 const setupMultiSelect = (btnId, dropId) => {
@@ -725,16 +565,6 @@ app.registerExtension({
                 // FIX: Reset preserves the user's NSFW filter choice — it persists across resets by design
                 bg.querySelector("#ckpt-reset-filters-btn").onclick = () => { bg.querySelector("#ckpt-filter-text").value = ""; window.comfyVisualCkptSortAsc = true; getBaseCheckboxes().forEach(c => c.checked = (c.value === "all")); viewCheckboxes.forEach(c => c.checked = true); updateViewClasses(); filterAndSortCards(); };
 
-                bg.querySelector("#ckpt-add-local-img-btn").onclick = (e) => {
-                    const originalText = e.target.innerHTML;
-                    e.target.innerHTML = "⭐ Get Pro";
-                    e.target.style.color = "#ffd700";
-                    setTimeout(() => {
-                        e.target.innerHTML = originalText;
-                        e.target.style.color = "white";
-                    }, 2000);
-                };
-
                 const leftPane = bg.querySelector("#ckpt-left-pane"); const resizer = bg.querySelector("#ckpt-resizer"); let isResizing = false;
                 resizer.addEventListener("mousedown", () => { isResizing = true; bg.style.cursor = "col-resize"; });
 
@@ -752,7 +582,6 @@ app.registerExtension({
                     const stateObj = nsfwStates[window.comfyVisualCkptNsfwState];
                     bg.className = "ckpt-modal-bg";
                     if (window.comfyVisualCkptHideImages) bg.classList.add("ckpt-hide-images-mode");
-                    if (window.comfyVisualCkptHidePro) bg.classList.add("ckpt-hide-pro-mode");
                     if (stateObj.cls) bg.classList.add(stateObj.cls);
                     e.target.innerText = stateObj.label;
                 };
@@ -968,7 +797,6 @@ app.registerExtension({
                     bg.remove();
                     document.removeEventListener("keydown", escListener);
                     document.removeEventListener("keydown", keyNavListener);
-                    document.removeEventListener("click", colorDropClickListener);
                     document.removeEventListener("click", viewDropListener);
                     document.removeEventListener("click", baseDropListener);
                     document.removeEventListener("mousemove", resizerMouseMove);
