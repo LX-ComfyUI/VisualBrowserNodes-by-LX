@@ -5,7 +5,7 @@
     <br>
 </h1>
 <p align="center">
-    <a href="#the-nodes">The Nodes</a> &nbsp; | &nbsp; <a href="#features">Features</a> &nbsp; | &nbsp; &nbsp; <a href="#installation">Installation</a> | &nbsp; &nbsp; <a href="#how-to-use"># How to Use</a> 
+    <a href="#the-nodes">The Nodes</a> &nbsp; | &nbsp; <a href="#features">Features</a> &nbsp; | &nbsp; &nbsp; <a href="#installation">Installation</a> | &nbsp; &nbsp; <a href="#how-to-use">How to Use</a> 
 </p>
 <hr>
 
