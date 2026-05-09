@@ -1,6 +1,8 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
+let _lxLoraOpenBrowser = null;
+
 if (!window.comfyVisualLoraCache) window.comfyVisualLoraCache = {};
 
 // --- LOCAL STORAGE INIT ---
@@ -633,22 +635,22 @@ app.registerExtension({
                 };
 
                 const grid = bg.querySelector("#lora-grid"); let currentlySelectedDiv = null;
-                loras.forEach(ckpt => {
-                    const card = document.createElement("div"); card.className = "lora-card"; card.dataset.filename = ckpt.filename; card.dataset.name = ckpt.name;
-                    const cDataStart = window.comfyVisualLoraCache[ckpt.filename] || {}; if (cDataStart.userNsfw) card.classList.add("is-lora-nsfw");
-                    if (ckpt.filename === selectedFilename) { card.classList.add("selected"); currentlySelectedDiv = card; }
+                loras.forEach(lora => {
+                    const card = document.createElement("div"); card.className = "lora-card"; card.dataset.filename = lora.filename; card.dataset.name = lora.name;
+                    const cDataStart = window.comfyVisualLoraCache[lora.filename] || {}; if (cDataStart.userNsfw) card.classList.add("is-lora-nsfw");
+                    if (lora.filename === selectedFilename) { card.classList.add("selected"); currentlySelectedDiv = card; }
 
                     card.innerHTML = `
                         <div class="lora-card-img">NO DATA</div>
                         <div class="lora-card-footer">
                             <div class="lora-card-alias">${escapeHTML(cDataStart.alias)}</div>
-                            <div class="lora-card-filename">${escapeHTML(ckpt.name)}</div>
+                            <div class="lora-card-filename">${escapeHTML(lora.name)}</div>
                             <div class="lora-card-base">${escapeHTML(cDataStart.baseModel) || "Unknown Model"}</div>
                         </div>`;
 
-                    grid.appendChild(card); updateCardPreview(bg, ckpt.filename);
+                    grid.appendChild(card); updateCardPreview(bg, lora.filename);
                     card.onclick = () => {
-                        if (currentlySelectedDiv) currentlySelectedDiv.classList.remove("selected"); card.classList.add("selected"); currentlySelectedDiv = card; selectedFilename = ckpt.filename;
+                        if (currentlySelectedDiv) currentlySelectedDiv.classList.remove("selected"); card.classList.add("selected"); currentlySelectedDiv = card; selectedFilename = lora.filename;
                         updateRightPanel(selectedFilename);
                     };
                 });
@@ -810,23 +812,27 @@ app.registerExtension({
                 };
             };
 
-            const onNodeCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function () {
-                if (onNodeCreated) onNodeCreated.apply(this, arguments);
-                const dataWidget = this.widgets.find(w => w.name === "selected_lora");
-                if (dataWidget) {
-                    if (dataWidget.inputEl) {
-                        dataWidget.inputEl.readOnly = true;
-                        dataWidget.inputEl.style.opacity = "0.7";
-                    }
-                }
-                const btn = this.addWidget("button", "🌐 Open Visual LoRA Browser", null, () => openBrowser(this));
-                const btnIdx = this.widgets.indexOf(btn);
-                this.widgets.splice(btnIdx, 1);
-                const dataIdx = this.widgets.indexOf(dataWidget);
-                this.widgets.splice(dataIdx, 0, btn);
-                this.size = [300, this.computeSize()[1]];
-            };
+            _lxLoraOpenBrowser = openBrowser;
         }
+    },
+    nodeCreated(node) {
+        if ((node.comfyClass || node.type) !== "VisualLoraBrowserLX" || !_lxLoraOpenBrowser) return;
+        const buttonLabel = "🌐 Open Visual LoRA Browser";
+        if (node.widgets?.find(w => w.name === buttonLabel)) return;
+        const dataWidget = node.widgets?.find(w => w.name === "selected_lora");
+        if (dataWidget?.inputEl) {
+            dataWidget.inputEl.readOnly = true;
+            dataWidget.inputEl.style.opacity = "0.7";
+        }
+        const btn = node.addWidget("button", buttonLabel, null, () => _lxLoraOpenBrowser(node));
+        const btnIdx = node.widgets.indexOf(btn);
+        node.widgets.splice(btnIdx, 1);
+        if (dataWidget) {
+            const dataIdx = node.widgets.indexOf(dataWidget);
+            node.widgets.splice(dataIdx, 0, btn);
+        } else {
+            node.widgets.unshift(btn);
+        }
+        node.size = [300, node.computeSize()[1]];
     }
 });

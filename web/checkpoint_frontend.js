@@ -1,6 +1,8 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
+let _lxCkptOpenBrowser = null;
+
 if (!window.comfyVisualCheckpointCache) window.comfyVisualCheckpointCache = {};
 // CLEANUP: Removed window.comfyVisualBrowserColors — Pro-version remnant, never read in Basic
 
@@ -812,23 +814,27 @@ app.registerExtension({
                 };
             };
 
-            const onNodeCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function () {
-                if (onNodeCreated) onNodeCreated.apply(this, arguments);
-                const dataWidget = this.widgets.find(w => w.name === "selected_model");
-                if (dataWidget) {
-                    if (dataWidget.inputEl) {
-                        dataWidget.inputEl.readOnly = true;
-                        dataWidget.inputEl.style.opacity = "0.7";
-                    }
-                }
-                const btn = this.addWidget("button", "🌐 Open Visual Checkpoint Browser", null, () => openBrowser(this));
-                const btnIdx = this.widgets.indexOf(btn);
-                this.widgets.splice(btnIdx, 1);
-                const dataIdx = this.widgets.indexOf(dataWidget);
-                this.widgets.splice(dataIdx, 0, btn);
-                this.size = [300, this.computeSize()[1]];
-            };
+            _lxCkptOpenBrowser = openBrowser;
         }
+    },
+    nodeCreated(node) {
+        if ((node.comfyClass || node.type) !== "VisualCheckpointLoaderLX" || !_lxCkptOpenBrowser) return;
+        const buttonLabel = "🌐 Open Visual Checkpoint Browser";
+        if (node.widgets?.find(w => w.name === buttonLabel)) return;
+        const dataWidget = node.widgets?.find(w => w.name === "selected_model");
+        if (dataWidget?.inputEl) {
+            dataWidget.inputEl.readOnly = true;
+            dataWidget.inputEl.style.opacity = "0.7";
+        }
+        const btn = node.addWidget("button", buttonLabel, null, () => _lxCkptOpenBrowser(node));
+        const btnIdx = node.widgets.indexOf(btn);
+        node.widgets.splice(btnIdx, 1);
+        if (dataWidget) {
+            const dataIdx = node.widgets.indexOf(dataWidget);
+            node.widgets.splice(dataIdx, 0, btn);
+        } else {
+            node.widgets.unshift(btn);
+        }
+        node.size = [300, node.computeSize()[1]];
     }
 });
