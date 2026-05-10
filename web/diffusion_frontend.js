@@ -812,6 +812,47 @@ app.registerExtension({
                     node.setDirtyCanvas(true, true);
                     closeModal();
                 };
+
+                bg.querySelector("#diff-add-local-img-btn").onclick = () => {
+                    if (!selectedFilename) { alert("Please select a Diffusion Model first."); return; }
+                    const fileInput = document.createElement("input");
+                    fileInput.type = "file";
+                    fileInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm";
+                    fileInput.style.display = "none";
+                    document.body.appendChild(fileInput);
+                    fileInput.onchange = async () => {
+                        const file = fileInput.files[0];
+                        document.body.removeChild(fileInput);
+                        if (!file) return;
+                        const btn = bg.querySelector("#diff-add-local-img-btn");
+                        btn.disabled = true;
+                        btn.innerText = "⏳ Uploading...";
+                        try {
+                            const fd = new FormData();
+                            fd.append("lora_filename", selectedFilename);
+                            fd.append("image", file, file.name);
+                            const resp = await api.fetchApi("/visual_diffusion/save_local_image", { method: "POST", body: fd });
+                            const result = await resp.json();
+                            if (result.status === "ok") {
+                                if (!window.comfyVisualDiffusionCache[selectedFilename]) window.comfyVisualDiffusionCache[selectedFilename] = {};
+                                window.comfyVisualDiffusionCache[selectedFilename].customCover = result.url;
+                                await saveCacheToServer(selectedFilename);
+                                updateCardPreview(bg, selectedFilename);
+                                btn.innerText = "✅ Done!";
+                                setTimeout(() => { btn.innerText = "➕ Add Local Media"; btn.disabled = false; }, 2000);
+                            } else {
+                                alert("Upload failed: " + (result.reason || "unknown error"));
+                                btn.innerText = "➕ Add Local Media";
+                                btn.disabled = false;
+                            }
+                        } catch (e) {
+                            alert("Upload error: " + e);
+                            btn.innerText = "➕ Add Local Media";
+                            btn.disabled = false;
+                        }
+                    };
+                    fileInput.click();
+                };
             };
 
             _lxDiffOpenBrowser = openBrowser;

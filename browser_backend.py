@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import asyncio
 import hashlib
@@ -140,6 +141,56 @@ def create_routes(prefix, folder_name, cache_file, img_dir, web_img_path):
             cache[filename] = civitai_data
             save_json_cache(cache_file, cache)
         return web.json_response({"status": "ok"})
+
+    @PromptServer.instance.routes.post(f"/{prefix}/save_local_image")
+    async def save_local_image(request):
+        try:
+            reader = await request.multipart()
+        except Exception:
+            return web.json_response({"status": "error", "reason": "not_multipart"}, status=400)
+
+        lora_filename = None
+        img_bytes = None
+        ext = ".jpg"
+
+        MIME_TO_EXT = {
+            "image/jpeg": ".jpg", "image/jpg": ".jpg",
+            "image/png": ".png", "image/webp": ".webp",
+            "image/gif": ".gif", "video/mp4": ".mp4",
+            "video/webm": ".webm",
+        }
+
+        async for field in reader:
+            if field.name == "lora_filename":
+                raw = await field.read(decode=True)
+                lora_filename = raw.decode("utf-8", errors="replace")
+            elif field.name == "image":
+                content_type = (field.content_type or "image/jpeg").split(";")[0].strip().lower()
+                # Fallback: derive extension from filename if content-type is generic
+                if content_type in ("application/octet-stream", "") and field.filename:
+                    _, fe = os.path.splitext(field.filename)
+                    ext = fe.lower() if fe else ".jpg"
+                else:
+                    ext = MIME_TO_EXT.get(content_type, ".jpg")
+                img_bytes = await field.read()
+
+        if not lora_filename or img_bytes is None:
+            return web.json_response({"status": "error", "reason": "missing_fields"}, status=400)
+
+        # Build a safe image filename from the lora filename
+        base = os.path.splitext(os.path.basename(lora_filename))[0]
+        safe_base = re.sub(r"[^\w\-]", "_", base)[:80]
+        img_filename = safe_base + ext
+        img_path = os.path.join(img_dir, img_filename)
+
+        try:
+            with open(img_path, "wb") as f:
+                f.write(img_bytes)
+        except Exception as e:
+            print(f"[Visual Browser] Failed to save local image: {e}")
+            return web.json_response({"status": "error", "reason": str(e)}, status=500)
+
+        return web.json_response({"status": "ok", "url": f"/{web_img_path}/{img_filename}"})
 
 # Initialisiere reduzierte Routen für alle 3 Module
 create_routes("visual_lora", "loras", LORA_CACHE_FILE, LORA_IMG_DIR, "visual_lora_images")
