@@ -17,12 +17,6 @@ Stay organized with intelligent filtering, searching, and the ability to add per
 
 *Finally, your `.safetensors` files become visible, saving you from scrolling through a dead and unfriendly endless list of models and LoRAs in the default loaders.*
 
-### 📦 What's included?
-This suite provides 3 separate nodes:
-- 🌐 **Civitai Visual LoRA Loader**
-- 🌐 **Civitai Visual Checkpoint Model Loader**
-- 🌐 **Civitai Visual Diffusion Model Loader**
-
 ---
 
 <p> This is how the Visual Browser Nodes looks like, when you open them up, they are all similar:</p>
@@ -32,7 +26,12 @@ This suite provides 3 separate nodes:
 
 ---
 ## The Nodes
-Here are my three Nodes in the ComfyUI Canvas Workspace:
+
+### 📦 What's included?
+This suite provides 3 separate nodes:
+- 🌐 **Civitai Visual LoRA Loader**
+- 🌐 **Civitai Visual Checkpoint Model Loader**
+- 🌐 **Civitai Visual Diffusion Model Loader**
 
 <img width="1516" height="735" alt="The Nodes Civitai Visual Loaders and Browsers by LX" src="https://github.com/user-attachments/assets/fc1e2066-a4a2-4de1-a286-8a266b660c2e" />
 
