@@ -150,7 +150,9 @@ Click the big "🌐 Open Visual LoRA Browser" button on the node to launch the v
 
 <br>
 
-<video src="https://github.com/user-attachments/assets/23029211-06d9-41fa-b2bd-4c1f9d1ff3b9" autoplay loop muted playsinline width="100%"></video>
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/23029211-06d9-41fa-b2bd-4c1f9d1ff3b9" autoplay loop muted playsinline width="600"></video>
+</p>
 
 ---
 
