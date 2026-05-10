@@ -81,8 +81,6 @@ Say goodbye to endless, confusing dropdown menus and hello to a sleek visual int
   3. Search for **"Civitai Visual Browser & Loader by LX"**.<br>
   4. Click Install and restart ComfyUI.
 
-<br>
-
 <img width="1892" height="938" alt="Preview_Video_Search_4" src="https://github.com/user-attachments/assets/6e1c84fe-7126-4728-bc19-15888ede376c" />
 
 <br>
