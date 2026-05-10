@@ -164,7 +164,7 @@ Click the big "🌐 Open Visual LoRA Browser" button on the node to launch the v
 
 <br>
 
-  <img src="https://github.com/user-attachments/assets/3ddad2a7-d355-4220-86fa-8f3fb0fca3df" alt="Visual Browser Demo">
+<img width="1892" height="948" alt="Preview_Video" src="https://github.com/user-attachments/assets/6d36ea33-d978-4f67-be6c-2b373e9e6c4d" />
 
 ---
 
