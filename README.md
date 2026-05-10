@@ -82,6 +82,12 @@ Say goodbye to endless, confusing dropdown menus and hello to a sleek visual int
   3. Search for **"Civitai Visual Browser & Loader by LX"**.<br>
   4. Click Install and restart ComfyUI.
 
+<br>
+
+<img width="1892" height="938" alt="Preview_Video_Search_4" src="https://github.com/user-attachments/assets/6e1c84fe-7126-4728-bc19-15888ede376c" />
+
+<br>
+
 * **Method 2: Manual Installation**
   Navigate to your ComfyUI custom_nodes folder in your terminal/command prompt:
 
@@ -89,6 +95,8 @@ Say goodbye to endless, confusing dropdown menus and hello to a sleek visual int
   #cd ComfyUI/custom_nodes
   #Clone my repository:
   git clone https://github.com/LX-ComfyUI/VisualBrowserNodes-by-LX.git
+
+<br>
 
 Restart ComfyUI!
 
@@ -108,7 +116,13 @@ Search for any of the loaders:
 
 🌐 Civitai Visual Diffusion Model Loader by LX
 
+<img width="1892" height="938" alt="Preview_Video_Search" src="https://github.com/user-attachments/assets/554d9cd4-b731-4fae-8433-5569e5c84a6e" />
+
+<br>
+
 Click the big "🌐 Open Visual LoRA Browser" button on the node to launch the visual interface!
+
+<img width="1892" height="938" alt="Preview_Video_Open_Browser_3" src="https://github.com/user-attachments/assets/8b09cbe9-9c43-4f9a-a614-c1ae60dd13a9" />
 
 ---
 
@@ -150,7 +164,7 @@ Click the big "🌐 Open Visual LoRA Browser" button on the node to launch the v
 
 <br>
 
-<img width="1088" height="839" alt="image" src="https://github.com/user-attachments/assets/272678da-a278-4824-8908-8c1113ca6723" />
+  <img src="https://github.com/user-attachments/assets/3ddad2a7-d355-4220-86fa-8f3fb0fca3df" alt="Visual Browser Demo">
 
 ---
 
