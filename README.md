@@ -57,17 +57,19 @@ Say goodbye to endless, confusing dropdown menus and hello to a sleek visual int
 
 * **📋 Advanced Hover Menus for preview image:** Copy Positive/Negative Prompts straight from preview images, download Civitai images directly, or instantly open local folders.
 * **🖼️ Set your Own Cover:** Set your own preview image as cover for the Grid Interface.
-* **📁 Add local image:** Easily add your own local images and you can also set is as cover.
+* **➕ Add local image:** Easily add your own local images/videos and you can also set them as cover.
 
 <br>
 
-* **🗂️ Advanced Sorting & Filtering:** Sort by Rating, Reviews, Download Date, and multi-select Base Models.
-* **🛑 NSFW Filter:** Basic toggle to hide or show NSFW content.
-* **🙈 Individual Media Hiding:** Permanently blur out specific NSFW or annoying preview images with one click.
+* **🗂️ View:** You can select the View by: File Name, Base Model Name, Preview Image.
+* **🗃️ Filtering:** Filter by Base Models. You can seleu one or more to view.
+* **🛑 NSFW Filter:** Basic toggle to hide or show NSFW content, it will not be reset by reset button or restart.
+
+* **🙈 Global Individual Media Hiding:** Permanently blur out specific NSFW or annoying preview images with one click.
 
 <br>
 
-* **🎬 Full Media Gallery** View all preview images and videos.
+* **🎬 Full Media Gallery** View all preview images, videos, aimated webpics, GIFs and more.
 * **🎬 Video Control:** Features a global Play/Pause "Zen Mode" that resets preview videos to Frame 0 to reduce visual clutter.
 * **⌨️ Lightning-Fast Keyboard Navigation:** Surf through your models using the Arrow Keys or `W`, `A`, `S`, `D`.
 
