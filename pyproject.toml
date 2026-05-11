@@ -1,6 +1,6 @@
 [project]
 name = "visualbrowsernodes-by-lx"
-version = "1.1.2"
+version = "1.1.3"
 description = "The ultimate visual browser for your local LoRAs and models! Enjoy a deep Civitai data integration. Take full control of your local library by automatically showing Civitai preview images, loading trigger words, and diving into detailed metadata inspection. Stay organized with intelligent filtering, searching, and the ability to add personal notes to your favorite models. Perfect for content creators, it includes separated SFW and NSFW views to guarantee a safe interface for working, creating videos, or live streaming. Finally your .safetensors files become visible, saving you from scrolling through a dead and unfriendly endless list of models and LoRAs in the default loaders. This suite provides 3 separate nodes: a Civitai Visual Checkpoint Loader, a Civitai Visual Diffusion Model Loader, and a Civitai Visual LoRA Loader."
 dependencies = []
 
@@ -10,4 +10,4 @@ Repository = "https://github.com/LX-ComfyUI/VisualBrowserNodes-by-LX"
 [tool.comfy]
 PublisherId = "lx-comfyui"
 DisplayName = "Civitai Visual Browser & Loader by LX"
-Icon = "https://private-user-images.githubusercontent.com/193536438/589153007-21caf9e2-0162-483a-8340-f2de451dbb1d.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3Nzg0NDY4OTUsIm5iZiI6MTc3ODQ0NjU5NSwicGF0aCI6Ii8xOTM1MzY0MzgvNTg5MTUzMDA3LTIxY2FmOWUyLTAxNjItNDgzYS04MzQwLWYyZGU0NTFkYmIxZC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwNTEwJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDUxMFQyMDU2MzVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1mNjhiZDM0ZGVmZGJjNzAxYzdlMjAyNzFjMWM3Y2ZhYjU3MTViZjQ1ODU1MmQ1NTRiZjlmZTExYzEwOWRkNjY1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.YvBrcqXjQV48ZVeajR2Ko-3htSUMIy676EA8VU5U0sc"
+Icon = "https://drive.google.com/file/d/123n-UUVweY526DDFMqroM4_E-68VBjE0/view?usp=sharing"

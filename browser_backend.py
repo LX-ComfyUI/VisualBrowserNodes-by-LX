@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import base64
 import asyncio
 import hashlib
 import folder_paths
@@ -73,6 +74,16 @@ def calculate_sha256(filepath):
         print(f"[Visual Browser] Failed to hash {filepath}: {e}")
         return None
 
+# ─── KONSTANTEN ─────────────────────────────────────────────────────────────────
+_MIME_TO_EXT = {
+    "image/jpeg": ".jpg", "image/jpg": ".jpg",
+    "image/png": ".png", "image/webp": ".webp",
+    "image/gif": ".gif", "video/mp4": ".mp4",
+    "video/webm": ".webm",
+}
+_ALLOWED_EXTENSIONS = set(_MIME_TO_EXT.values())  # Whitelist: only known media types
+_MAX_IMAGE_BYTES = 50 * 1024 * 1024  # 50 MB decoded limit
+
 # ─── API ROUTEN GENERATOR (BASIC - REDUZIERT) ───────────────────────────────────
 def create_routes(prefix, folder_name, cache_file, img_dir, web_img_path):
     # FIX: Per-cache asyncio lock — serializes update_cache so concurrent requests
@@ -107,7 +118,10 @@ def create_routes(prefix, folder_name, cache_file, img_dir, web_img_path):
 
     @PromptServer.instance.routes.post(f"/{prefix}/get_hash")
     async def get_hash(request):
-        data = await request.json()
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response({"hash": None})
         filepath = folder_paths.get_full_path(folder_name, data.get("filename"))
         if not filepath or not os.path.exists(filepath): return web.json_response({"hash": None})
         return web.json_response({"hash": calculate_sha256(filepath)})
@@ -145,41 +159,37 @@ def create_routes(prefix, folder_name, cache_file, img_dir, web_img_path):
     @PromptServer.instance.routes.post(f"/{prefix}/save_local_image")
     async def save_local_image(request):
         try:
-            reader = await request.multipart()
+            data = await request.json()
         except Exception:
-            return web.json_response({"status": "error", "reason": "not_multipart"}, status=400)
+            return web.json_response({"status": "error", "reason": "invalid_json"}, status=400)
 
-        lora_filename = None
-        img_bytes = None
-        ext = ".jpg"
+        lora_filename = data.get("lora_filename", "")
+        image_b64    = data.get("image_b64", "")
+        mime_type    = data.get("mime_type", "image/jpeg")
+        orig_name    = data.get("orig_filename", "")
 
-        MIME_TO_EXT = {
-            "image/jpeg": ".jpg", "image/jpg": ".jpg",
-            "image/png": ".png", "image/webp": ".webp",
-            "image/gif": ".gif", "video/mp4": ".mp4",
-            "video/webm": ".webm",
-        }
+        if not isinstance(lora_filename, str) or not lora_filename:
+            return web.json_response({"status": "error", "reason": "missing lora_filename"}, status=400)
+        if not isinstance(image_b64, str) or not image_b64:
+            return web.json_response({"status": "error", "reason": "missing image_b64"}, status=400)
 
-        async for field in reader:
-            if field.name == "lora_filename":
-                raw = await field.read(decode=True)
-                lora_filename = raw.decode("utf-8", errors="replace")
-            elif field.name == "image":
-                content_type = (field.content_type or "image/jpeg").split(";")[0].strip().lower()
-                # Fallback: derive extension from filename if content-type is generic
-                if content_type in ("application/octet-stream", "") and field.filename:
-                    _, fe = os.path.splitext(field.filename)
-                    ext = fe.lower() if fe else ".jpg"
-                else:
-                    ext = MIME_TO_EXT.get(content_type, ".jpg")
-                img_bytes = await field.read()
+        # Size check on base64 string (base64 is ~4/3 of decoded size)
+        if len(image_b64) > _MAX_IMAGE_BYTES * 4 // 3 + 64:
+            return web.json_response({"status": "error", "reason": "image_too_large"}, status=413)
 
-        if not lora_filename or img_bytes is None:
-            return web.json_response({"status": "error", "reason": "missing_fields"}, status=400)
+        try:
+            img_bytes = base64.b64decode(image_b64)
+        except Exception:
+            return web.json_response({"status": "error", "reason": "invalid_base64"}, status=400)
 
-        # Build a safe image filename from the lora filename
-        base = os.path.splitext(os.path.basename(lora_filename))[0]
-        safe_base = re.sub(r"[^\w\-]", "_", base)[:80]
+        if len(img_bytes) > _MAX_IMAGE_BYTES:
+            return web.json_response({"status": "error", "reason": "image_too_large"}, status=413)
+
+        # Extension: derive from orig_filename, then mime_type — but only allow whitelisted extensions
+        _, fe = os.path.splitext(orig_name)
+        ext = fe.lower() if fe.lower() in _ALLOWED_EXTENSIONS else _MIME_TO_EXT.get(mime_type.split(";")[0].strip().lower(), ".jpg")
+
+        safe_base = re.sub(r"[^\w\-]", "_", os.path.splitext(os.path.basename(lora_filename))[0])[:80]
         img_filename = safe_base + ext
         img_path = os.path.join(img_dir, img_filename)
 
@@ -191,6 +201,30 @@ def create_routes(prefix, folder_name, cache_file, img_dir, web_img_path):
             return web.json_response({"status": "error", "reason": str(e)}, status=500)
 
         return web.json_response({"status": "ok", "url": f"/{web_img_path}/{img_filename}"})
+
+    @PromptServer.instance.routes.post(f"/{prefix}/delete_local_image")
+    async def delete_local_image(request):
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response({"status": "error", "reason": "invalid_json"}, status=400)
+        url = data.get("url", "")
+        if not isinstance(url, str) or not url:
+            return web.json_response({"status": "error", "reason": "missing url"}, status=400)
+        basename = os.path.basename(url.split("?")[0])
+        if not basename:
+            return web.json_response({"status": "error", "reason": "invalid_url"}, status=400)
+        img_path = os.path.join(img_dir, basename)
+        # Path traversal guard
+        if not os.path.abspath(img_path).startswith(os.path.abspath(img_dir) + os.sep):
+            return web.json_response({"status": "error", "reason": "path_traversal"}, status=400)
+        try:
+            if os.path.exists(img_path):
+                os.remove(img_path)
+            return web.json_response({"status": "ok"})
+        except Exception as e:
+            print(f"[Visual Browser] Failed to delete local image: {e}")
+            return web.json_response({"status": "error", "reason": str(e)}, status=500)
 
 # Initialisiere reduzierte Routen für alle 3 Module
 create_routes("visual_lora", "loras", LORA_CACHE_FILE, LORA_IMG_DIR, "visual_lora_images")

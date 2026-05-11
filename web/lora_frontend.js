@@ -279,6 +279,7 @@ app.registerExtension({
                                 <button class="lora-civitai-btn lora-action-hide">${isImgHidden ? '👁️ Show' : '🙈 Hide'}</button>
                                 <span class="lora-img-saved-flash" style="opacity:0; color:#4ade80; font-size:11px; font-weight:bold; transition: opacity 0.3s;">Saved!</span>
                             </div>
+                            ${isLocal ? '<button class="lora-civitai-btn lora-btn-danger lora-action-delete">❌ Remove</button>' : ''}
                         </div>`;
 
                         if (m.seed || m.steps || m.cfgScale || m.sampler) {
@@ -358,6 +359,18 @@ app.registerExtension({
                         }
 
                         cont.querySelector('.lora-action-cover').onclick = async (e) => { window.comfyVisualLoraCache[selectedFilename].customCover = imgInfo.url; await saveCacheToServer(selectedFilename); updateCardPreview(bg, selectedFilename); e.target.innerText = "✅ Set!"; setTimeout(() => e.target.innerText = "🖼️ Set Cover", 2000); };
+                        if (isLocal) {
+                            cont.querySelector('.lora-action-delete').onclick = async (e) => {
+                                e.target.innerText = "⏳...";
+                                await api.fetchApi("/visual_lora/delete_local_image", { method: "POST", body: JSON.stringify({ url: imgInfo.url }) });
+                                civData.images = civData.images.filter(i => i.url !== imgInfo.url);
+                                if (civData.customCover === imgInfo.url) civData.customCover = "";
+                                window.comfyVisualLoraCache[selectedFilename] = civData;
+                                await saveCacheToServer(selectedFilename);
+                                renderCivitaiData(civData, bg, selectedFilename);
+                                updateCardPreview(bg, selectedFilename);
+                            };
+                        }
                     }
 
                     if (isFull || isHoverOnly) {
@@ -813,6 +826,7 @@ app.registerExtension({
 
                 bg.querySelector("#lora-add-local-img-btn").onclick = () => {
                     if (!selectedFilename) { alert("Please select a LoRA first."); return; }
+                    const capturedFilename = selectedFilename;
                     const fileInput = document.createElement("input");
                     fileInput.type = "file";
                     fileInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm";
@@ -826,16 +840,18 @@ app.registerExtension({
                         btn.disabled = true;
                         btn.innerText = "⏳ Uploading...";
                         try {
-                            const fd = new FormData();
-                            fd.append("lora_filename", selectedFilename);
-                            fd.append("image", file, file.name);
-                            const resp = await api.fetchApi("/visual_lora/save_local_image", { method: "POST", body: fd });
+                            const reader2 = new FileReader();
+                            const b64 = await new Promise((res, rej) => { reader2.onload = () => res(reader2.result.split(",")[1]); reader2.onerror = (e) => rej(e); reader2.readAsDataURL(file); });
+                            const resp = await api.fetchApi("/visual_lora/save_local_image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lora_filename: capturedFilename, image_b64: b64, mime_type: file.type, orig_filename: file.name }) });
                             const result = await resp.json();
                             if (result.status === "ok") {
-                                if (!window.comfyVisualLoraCache[selectedFilename]) window.comfyVisualLoraCache[selectedFilename] = {};
-                                window.comfyVisualLoraCache[selectedFilename].customCover = result.url;
-                                await saveCacheToServer(selectedFilename);
-                                updateCardPreview(bg, selectedFilename);
+                                if (!window.comfyVisualLoraCache[capturedFilename]) window.comfyVisualLoraCache[capturedFilename] = {};
+                                const cData = window.comfyVisualLoraCache[capturedFilename];
+                                if (!cData.images) cData.images = [];
+                                cData.images.push({ url: result.url, isLocal: true, meta: {} });
+                                await saveCacheToServer(capturedFilename);
+                                renderCivitaiData(cData, bg, capturedFilename);
+                                updateCardPreview(bg, capturedFilename);
                                 btn.innerText = "✅ Done!";
                                 setTimeout(() => { btn.innerText = "➕ Add Local Media"; btn.disabled = false; }, 2000);
                             } else {
