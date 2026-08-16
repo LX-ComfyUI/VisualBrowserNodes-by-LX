@@ -1,7 +1,7 @@
 [project]
 name = "visualbrowsernodes-by-lx"
 version = "1.2.2"
-description = "The ultimate visual browser for your local LoRAs and models! Browse through a stunning Visual Model Library with customizable thumbnails for your .safetensors and other model files. Instead of struggling with a dead, unfriendly wall of text, you no longer have to endure the frustration of scrolling through endless lists of cryptic filenames in default ComfyUI loaders. You'll get a true, intuitive feeling for your local collection. Instantly view beautiful preview images, read descriptions, and copy essential trigger words with a single click. Take your workflow to the next level! Use lightning-fast intelligent filtering, deep search capabilities, and the power to add custom personal notes to every single model. Absolute peace of mind for Creators: The strictly separated SFW and NSFW views guarantee an absolutely safe, stress-free interface for working, creating videos, or live streaming. This suite provides 3 separate, beautifully designed visual nodes: a Checkpoint Loader, a Diffusion Model Loader, and a LoRA Loader"
+description = "The ultimate visual browser for your local LoRAs and models with customizable thumbnails."
 dependencies = []
 
 [project.urls]
