@@ -1,7 +1,7 @@
 [project]
 name = "visualbrowsernodes-by-lx"
-version = "1.2.2"
-description = "The ultimate visual browser for your local LoRAs and models with customizable thumbnails."
+version = "1.2.3"
+description = "The ultimate visual browser for your local LoRAs and models! Enjoy browsing a stunning Visual Model Library with customizable thumbnails for your .safetensors files. Instead of struggling with a dead wall of text, you no longer have to endure the frustration of scrolling through endless lists of cryptic filenames in default loaders. Trying to memorize the style behind every file kills your creative flow. By eliminating guesswork, you get an intuitive feeling for your local collection. Instantly view beautiful preview images, read descriptions, and copy essential trigger words with a click. Stay perfectly organized with lightning-fast filtering, deep search, and custom personal notes for every model. Peace of mind for creators is guaranteed since our separated SFW and NSFW views ensure a safe interface for live streaming. This suite provides a Checkpoint, Diffusion, and LoRA Loader, all brought to vibrant life by a deep, automatic Civitai integration. Experience all your models!"
 dependencies = []
 
 [project.urls]
