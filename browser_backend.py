@@ -240,6 +240,8 @@ class VisualLoraBrowserLX:
                 "model": ("MODEL",),
                 "clip": ("CLIP",),
                 "selected_lora": ("STRING", {"default": ""}),
+                # NEW: enabled toggle — when disabled, the LoRA is bypassed (model+clip pass through unchanged)
+                "enabled": ("BOOLEAN", {"default": True, "label_on": "Enabled", "label_off": "Disabled"}),
                 "strength_model": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
                 "strength_clip": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
             }
@@ -249,7 +251,10 @@ class VisualLoraBrowserLX:
     FUNCTION = "apply_lora"
     CATEGORY = "Smart Nodes"
 
-    def apply_lora(self, model, clip, selected_lora, strength_model, strength_clip):
+    def apply_lora(self, model, clip, selected_lora, enabled, strength_model, strength_clip):
+        # NEW: bypass when disabled — model and clip pass through unchanged
+        if not enabled:
+            return (model, clip)
         if not selected_lora or selected_lora == "--- Select LoRA ---": return (model, clip)
         lora_path = folder_paths.get_full_path("loras", selected_lora)
         if not lora_path: return (model, clip)

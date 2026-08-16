@@ -1,7 +1,7 @@
 [project]
 name = "visualbrowsernodes-by-lx"
-version = "1.1.3"
-description = "The ultimate visual browser for your local LoRAs and models! Enjoy a deep Civitai data integration. Take full control of your local library by automatically showing Civitai preview images, loading trigger words, and diving into detailed metadata inspection. Stay organized with intelligent filtering, searching, and the ability to add personal notes to your favorite models. Perfect for content creators, it includes separated SFW and NSFW views to guarantee a safe interface for working, creating videos, or live streaming. Finally your .safetensors files become visible, saving you from scrolling through a dead and unfriendly endless list of models and LoRAs in the default loaders. This suite provides 3 separate nodes: a Civitai Visual Checkpoint Loader, a Civitai Visual Diffusion Model Loader, and a Civitai Visual LoRA Loader."
+version = "1.2.0"
+description = "The ultimate visual browser for your local LoRAs and models! Browse through a stunning Visual Model Library with customizable thumbnails for your .safetensors and other model files. Instead of struggling with a dead, unfriendly wall of text, you no longer have to endure the frustration of scrolling through endless lists of cryptic filenames in default ComfyUI loaders. Trying to memorize the exact style or subject behind every single file only breaks your concentration and kills your creative flow. By eliminating this guesswork, you get a true, intuitive feeling for your local collection. Instantly view beautiful preview images, read descriptions, and copy essential trigger words with a single click—right where you need them. Take your workflow to the next level! Stay perfectly organized: Stop losing track of your favorite tools. Use lightning-fast intelligent filtering, deep search capabilities, and the power to add custom personal notes to every single model. Absolute peace of mind for Creators: One wrong click can ruin a broadcast or a professional presentation. The strictly separated SFW and NSFW views guarantee an absolutely safe, stress-free interface for working, creating videos, or live streaming. This suite provides 3 separate, beautifully designed visual nodes: a Checkpoint Loader, a Diffusion Model Loader, and a LoRA Loader. All of them are brought to vibrant life by a deep, automatic Civitai data integration that does the heavy lifting for you. Experience your models, don't just load them!"
 dependencies = []
 
 [project.urls]
@@ -10,4 +10,4 @@ Repository = "https://github.com/LX-ComfyUI/VisualBrowserNodes-by-LX"
 [tool.comfy]
 PublisherId = "lx-comfyui"
 DisplayName = "Civitai Visual Browser & Loader by LX"
-Icon = "https://drive.google.com/file/d/123n-UUVweY526DDFMqroM4_E-68VBjE0/view?usp=sharing"
+Icon = "https://avatars.githubusercontent.com/u/193536438?s=400&u=7271cf118265cfc0d1efe3b2fc7a814b0569095d&v=4"

@@ -50,13 +50,19 @@ app.registerExtension({
                 .lora-modal-header h2 { margin: 0; color: #fff; font-size: 20px; }
 
                 .lora-header-controls { display: flex; gap: 10px; align-items: center; }
-                .lora-close-btn, .lora-toggle-img-btn, .lora-toggle-nsfw-btn, .lora-help-btn { height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+                .lora-close-btn, .lora-toggle-img-btn, .lora-toggle-nsfw-btn, .lora-help-btn, .lora-fetch-all-btn { height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
 
                 .lora-close-btn { background: #cc4444; border: none; color: white; width: 32px; padding: 0; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; }
                 .lora-close-btn:hover { background: #ee5555; }
 
                 .lora-toggle-img-btn, .lora-toggle-nsfw-btn, .lora-help-btn { background: #333; border: 1px solid #444; color: white; padding: 0 8px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; width: auto; }
                 .lora-toggle-img-btn:hover, .lora-toggle-nsfw-btn:hover, .lora-help-btn:hover { background: #444; }
+
+                .lora-fetch-all-btn { background: #333; border: 1px solid #444; color: white; padding: 0 10px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; }
+                .lora-fetch-all-btn.fetched { background: #333 !important; border-color: #444 !important; color: #aaa !important; }
+                .lora-fetch-all-btn:hover { background: #444; }
+                .lora-fetch-all-btn.fetched:hover .lora-btn-text-normal { display: none; }
+                .lora-fetch-all-btn.fetched:hover .lora-btn-text-hover { display: inline; color: #fff; }
 
 
                 .lora-modal-body { display: flex; flex: 1; overflow: hidden; position: relative;}
@@ -449,6 +455,7 @@ app.registerExtension({
                             <h2>🌐 Civitai Visual LoRA Loader by LX</h2>
                             <div class="lora-header-controls">
                                 <button class="lora-help-btn" id="lora-help-btn" title="Visit GitHub">ℹ️ Get Help</button>
+                                <button class="lora-fetch-all-btn" id="lora-fetch-all-btn" title="Load missing data"><span class="lora-btn-text-normal">🌐 Load All Data</span><span class="lora-btn-text-hover">🔄 Reload All Data</span></button>
                                 <button class="lora-toggle-nsfw-btn" id="lora-toggle-nsfw-btn">${nsfwStates[currentNsfwState].label}</button>
                                 <button class="lora-toggle-img-btn" id="lora-toggle-img-btn">${window.comfyVisualLoraHideImages ? '👁️ Show Images' : '🙈 Hide Images'}</button>
                                 <button class="lora-close-btn" id="lora-close-modal" title="Esc">X</button>
@@ -514,6 +521,19 @@ app.registerExtension({
                 `;
                 document.body.appendChild(bg);
 
+                // Fetch All Sync Check
+                const checkFetchAllStatus = () => {
+                    const btn = bg.querySelector("#lora-fetch-all-btn");
+                    const toFetch = loras.filter(l => !window.comfyVisualLoraCache[l.filename]?.modelId);
+                    if (toFetch.length === 0) {
+                        btn.innerHTML = `<span class="lora-btn-text-normal">✅ All up to Date</span><span class="lora-btn-text-hover">🔄 Reload All Data</span>`;
+                        btn.classList.add("fetched");
+                    } else {
+                        btn.innerHTML = `<span class="lora-btn-text-normal">🌐 Load All Data</span>`;
+                        btn.classList.remove("fetched");
+                    }
+                };
+                checkFetchAllStatus();
 
                 const playBtn = bg.querySelector("#lora-global-play-btn");
                 const updateGlobalPlayState = () => {
@@ -759,6 +779,55 @@ app.registerExtension({
                     }
                 };
 
+                bg.querySelector("#lora-fetch-all-btn").onclick = async (e) => {
+                    const btn = e.currentTarget;
+                    if (btn.disabled) return;
+                    btn.disabled = true;
+
+                    let toFetch = loras.filter(l => !window.comfyVisualLoraCache[l.filename]?.modelId);
+
+                    // If everything was already loaded and user clicked it again (Reload All Data)
+                    if (btn.classList.contains("fetched")) {
+                        toFetch = loras;
+                    }
+
+                    for (let i = 0; i < toFetch.length; i++) {
+                        const fname = toFetch[i].filename;
+                        btn.innerHTML = `<span class="lora-btn-text-normal">⏳ Fetching ${i + 1}/${toFetch.length}...</span>`;
+                        try {
+                            const hashRes = await api.fetchApi("/visual_lora/get_hash", { method: "POST", body: JSON.stringify({ filename: fname }) });
+                            const hash = (await hashRes.json()).hash;
+                            if (hash) {
+                                const civRes = await fetch(`https://civitai.com/api/v1/model-versions/by-hash/${hash}`);
+                                if (civRes.ok) {
+                                    const civData = await civRes.json();
+                                    const oldData = window.comfyVisualLoraCache[fname] || {};
+                                    civData.personalNote = oldData.personalNote || "";
+                                    civData.alias = oldData.alias || "";
+                                    civData.userRating = oldData.userRating || 0;
+                                    civData.userNsfw = oldData.userNsfw || false;
+                                    civData.customCover = oldData.customCover || "";
+
+                                    window.comfyVisualLoraCache[fname] = civData;
+                                    await saveCacheToServer(fname);
+                                    updateCardPreview(bg, fname);
+
+                                    const cardEl = bg.querySelector(`.lora-card[data-filename="${CSS.escape(fname)}"]`);
+                                    if (cardEl) {
+                                        const baseBadge = cardEl.querySelector('.lora-card-base');
+                                        if (baseBadge) baseBadge.innerText = civData.baseModel || "Unknown Model";
+                                    }
+                                }
+                            }
+                        } catch (err) {}
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+                    btn.disabled = false;
+                    checkFetchAllStatus();
+                    filterAndSortCards();
+                    if (selectedFilename) updateRightPanel(selectedFilename);
+                };
+
                 // --- KEYBOARD NAVIGATION ---
                 const keyNavListener = (e) => {
                     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -890,6 +959,91 @@ app.registerExtension({
         } else {
             node.widgets.unshift(btn);
         }
+
+        // Re-order: Open button → enabled toggle → selected_lora → strength_model → strength_clip.
+        // Override the enabled toggle's draw to:
+        //   - put the "Enabled"/"Disabled" label on the LEFT only (no on/off text on the right),
+        //   - render a sliding pill switch on the right that animates the circle from left (off, dark)
+        //     to right (on, bright) when toggled.
+        const enabledWidget = node.widgets.find(w => w.name === "enabled");
+        if (enabledWidget) {
+            const curIdx = node.widgets.indexOf(enabledWidget);
+            if (curIdx >= 0) node.widgets.splice(curIdx, 1);
+            const btnNewIdx = node.widgets.indexOf(btn);
+            node.widgets.splice(btnNewIdx + 1, 0, enabledWidget);
+
+            // Track animation state per widget instance
+            enabledWidget._slideT = enabledWidget.value ? 1 : 0;
+            enabledWidget._slideTarget = enabledWidget._slideT;
+
+            enabledWidget.draw = function(ctx, node, widget_width, posY, H) {
+                const margin = 15;
+                const x = margin, y = posY, w = widget_width - margin * 2;
+                const value = !!this.value;
+                // Smoothly animate slide position toward the target (without requiring redraw scheduling
+                // we just snap close to target each frame the canvas redraws — good enough visually).
+                this._slideTarget = value ? 1 : 0;
+                const dt = this._slideTarget - this._slideT;
+                if (Math.abs(dt) > 0.01) {
+                    this._slideT += dt * 0.35;
+                    if (node && node.setDirtyCanvas) node.setDirtyCanvas(true, false);
+                } else {
+                    this._slideT = this._slideTarget;
+                }
+                const t = this._slideT;
+
+                // Outer pill background — same colors as a native toggle
+                ctx.beginPath();
+                ctx.fillStyle = "#222";
+                ctx.strokeStyle = "#666";
+                ctx.lineWidth = 1;
+                if (ctx.roundRect) ctx.roundRect(x, y, w, H, [H * 0.5]);
+                else { ctx.rect(x, y, w, H); }
+                ctx.fill();
+                ctx.stroke();
+
+                // Left label — vertically positioned to match the standard ComfyUI text baseline
+                // (textBaseline=alphabetic, Y=posY+H*0.7) so the "Enabled"/"Disabled" text sits
+                // on the same horizontal line as the strength widget labels below.
+                ctx.fillStyle = value ? "#ccc" : "#888";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "alphabetic";
+                ctx.font = "12px sans-serif";
+                const label = value ? (this.options.label_on || "Enabled") : (this.options.label_off || "Disabled");
+                ctx.fillText(label, x + 14, posY + H * 0.7);
+
+                // Right-side slider track
+                const trackW = 32;
+                const trackH = Math.min(H * 0.55, 16);
+                const trackX = x + w - trackW - 12;
+                const trackY = y + (H - trackH) * 0.5;
+                const trackR = trackH * 0.5;
+                // Interpolate track color between dark (off) and green (on)
+                const lerp = (a, b, t) => a + (b - a) * t;
+                const tr = Math.round(lerp(68, 34, t));     // 0x44 -> 0x22 component blend
+                const tg = Math.round(lerp(68, 197, t));    // 0x44 -> 0xc5 (green)
+                const tb = Math.round(lerp(68, 94, t));     // 0x44 -> 0x5e
+                ctx.fillStyle = `rgb(${tr},${tg},${tb})`;
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(trackX, trackY, trackW, trackH, [trackR]);
+                else { ctx.rect(trackX, trackY, trackW, trackH); }
+                ctx.fill();
+
+                // Sliding circle
+                const knobR = trackR - 2;
+                const knobMin = trackX + knobR + 2;
+                const knobMax = trackX + trackW - knobR - 2;
+                const knobX = lerp(knobMin, knobMax, t);
+                const knobY = trackY + trackH * 0.5;
+                // Color: dark when off, bright when on
+                const kr = Math.round(lerp(136, 255, t));
+                ctx.fillStyle = `rgb(${kr},${kr},${kr})`;
+                ctx.beginPath();
+                ctx.arc(knobX, knobY, knobR, 0, Math.PI * 2);
+                ctx.fill();
+            };
+        }
+
         node.size = [300, node.computeSize()[1]];
     }
 });
