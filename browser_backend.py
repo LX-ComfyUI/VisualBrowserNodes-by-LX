@@ -10,6 +10,32 @@ import comfy.sd
 from server import PromptServer
 from aiohttp import web
 
+
+class AnyType(str):
+    """A special type that always compares unequal, letting a node accept any input type."""
+
+    def __ne__(self, __value: object) -> bool:
+        return False
+
+
+class FlexibleOptionalInputType(dict):
+    """Optional input map that accepts any additional input name.
+
+    This lets the node receive the lora_1, lora_2, ... inputs created by the frontend.
+    """
+
+    def __init__(self, type):
+        self.type = type
+
+    def __getitem__(self, key):
+        return (self.type,)
+
+    def __contains__(self, key):
+        return True
+
+
+any_type = AnyType("*")
+
 # ─── PFADE & ORDNER (BASIC) ─────────────────────────────────────────────────────
 # Nutzt relative Pfade, funktioniert also automatisch nach der Ordner-Umbenennung
 BASE_DIR = os.path.dirname(__file__)
@@ -261,6 +287,53 @@ class VisualLoraBrowserLX:
         lora = comfy.utils.load_torch_file(lora_path, safe_load=True)
         return comfy.sd.load_lora_for_models(model, clip, lora, strength_model, strength_clip)
 
+class VisualMultiLoraLoaderLX:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "clip": ("CLIP",),
+            },
+            # The frontend creates one input per LoRA row (lora_1, lora_2, ...).
+            "optional": FlexibleOptionalInputType(any_type),
+        }
+    RETURN_TYPES = ("MODEL", "CLIP")
+    RETURN_NAMES = ("model", "clip")
+    FUNCTION = "apply_loras"
+    CATEGORY = "Smart Nodes"
+
+    def apply_loras(self, model, clip, **kwargs):
+        entries = []
+        for key, value in kwargs.items():
+            if not key.startswith("lora_") or not isinstance(value, dict):
+                continue
+            if not value.get("on"):
+                continue
+            lora_name = value.get("lora")
+            if not isinstance(lora_name, str) or not lora_name:
+                continue
+            try:
+                index = int(key[len("lora_"):])
+            except ValueError:
+                index = 0
+            entries.append((index, value))
+
+        for _, value in sorted(entries, key=lambda entry: entry[0]):
+            lora_path = folder_paths.get_full_path("loras", value["lora"])
+            if not lora_path:
+                print(f"[Visual Browser] LoRA not found, skipping: {value['lora']}")
+                continue
+            strength_model = float(value.get("strength", 1.0))
+            strength_clip = value.get("strengthTwo")
+            strength_clip = strength_model if strength_clip is None else float(strength_clip)
+            if strength_model == 0 and strength_clip == 0:
+                continue
+            lora = comfy.utils.load_torch_file(lora_path, safe_load=True)
+            model, clip = comfy.sd.load_lora_for_models(model, clip, lora, strength_model, strength_clip)
+
+        return (model, clip)
+
 class VisualCheckpointLoaderLX:
     @classmethod
     def INPUT_TYPES(s):
@@ -294,11 +367,13 @@ class VisualDiffusionLoaderLX:
 
 NODE_CLASS_MAPPINGS = {
     "VisualLoraBrowserLX": VisualLoraBrowserLX,
+    "VisualMultiLoraLoaderLX": VisualMultiLoraLoaderLX,
     "VisualCheckpointLoaderLX": VisualCheckpointLoaderLX,
     "VisualDiffusionLoaderLX": VisualDiffusionLoaderLX
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "VisualLoraBrowserLX": "🌐 Civitai Visual LoRA Loader by LX",
+    "VisualMultiLoraLoaderLX": "🌐 Civitai Visual Multi-Lora Loader by LX",
     "VisualCheckpointLoaderLX": "🌐 Civitai Visual Checkpoint Model Loader by LX",
     "VisualDiffusionLoaderLX": "🌐 Civitai Visual Diffusion Model Loader by LX"
 }

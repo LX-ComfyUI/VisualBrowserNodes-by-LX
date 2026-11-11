@@ -28,8 +28,9 @@ Stay organized with intelligent filtering, searching, and the ability to add per
 ## The Nodes
 
 ### 📦 What's included?
-This suite provides 3 separate nodes:
+This suite provides 4 separate nodes:
 - 🌐 **Civitai Visual LoRA Loader**
+- 🌐 **Civitai Visual Multi-Lora** (load any number of LoRAs in one node)
 - 🌐 **Civitai Visual Checkpoint Model Loader**
 - 🌐 **Civitai Visual Diffusion Model Loader**
 
@@ -50,6 +51,7 @@ Say goodbye to endless, confusing dropdown menus and hello to a sleek visual int
 ## Features
 
 * **🖼️ Visual Grid Interface:** View your local models as a clean, responsive grid of thumbnails instead of text lists.
+* **🧩 Multi-LoRA Loading:** The Multi-Lora node loads any number of LoRAs at once. Tick several cards in the visual browser, apply them together, then toggle or adjust the model/clip strengths per row.
 * **🔍 Quick Search:** Instantly filter your models by file name or folder.
 * **🌐 Basic Civitai Integration:** Fetch the primary preview image, Base Model & LoRA info, and Trigger Words directly from Civitai.
 
@@ -110,6 +112,8 @@ Right-click on the ComfyUI canvas (or double-click to search).
 Search for any of the loaders:
 
 🌐 Civitai Visual LoRA Loader by LX
+
+🌐 Civitai Visual Multi-Lora by LX
 
 🌐 Civitai Visual Checkpoint Model Loader by LX
 
