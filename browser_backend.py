@@ -373,7 +373,7 @@ NODE_CLASS_MAPPINGS = {
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "VisualLoraBrowserLX": "🌐 Civitai Visual LoRA Loader by LX",
-    "VisualMultiLoraLoaderLX": "🌐 Civitai Visual Multi-Lora by LX",
+    "VisualMultiLoraLoaderLX": "🌐 Civitai Visual Multi-Lora Loader by LX",
     "VisualCheckpointLoaderLX": "🌐 Civitai Visual Checkpoint Model Loader by LX",
     "VisualDiffusionLoaderLX": "🌐 Civitai Visual Diffusion Model Loader by LX"
 }
