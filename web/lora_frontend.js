@@ -16,6 +16,7 @@ if (!window.comfyVisualLoraFilters) {
     window.comfyVisualLoraFilters = {
         search: "",
         nsfw: localStorage.getItem("lx_lora_nsfw_filter") || "all",
+        selected: "all",
         viewOptions: { img: true, file: true, base: true },
         baseModels: ["all"]
     };
@@ -36,10 +37,371 @@ const escapeHTML = (str) => {
         .replace(/'/g, '&#39;');
 };
 
+// ─── MULTI-LORA NODE ────────────────────────────────────────────────────────────
+// Each LoRA row is a custom canvas widget named lora_1, lora_2, ... Its value is
+// { on, lora, strength, strengthTwo } and is sent to the backend as an input.
+const MULTI_LORA_ROW_HEIGHT = 26;
+const MULTI_LORA_MARGIN = 10;
+const MULTI_LORA_STRENGTH_WIDTH = 58;
+const MULTI_LORA_GAP = 6;
+const MULTI_LORA_REMOVE_WIDTH = 18;
+const MULTI_LORA_TOGGLE_WIDTH = 30;
+const MULTI_LORA_TOGGLE_HEIGHT = 14;
+
+const isMultiLoraNode = (node) => (node.comfyClass || node.type) === "VisualMultiLoraLoaderLX";
+
+const getMultiLoraWidgets = (node) =>
+    (node.widgets || []).filter(w => /^lora_\d+$/.test(w.name || "") && w.value && typeof w.value === "object");
+
+const getMultiLoraLayout = (width) => {
+    const right0 = width - MULTI_LORA_MARGIN - 8;
+    const remove = [right0 - MULTI_LORA_REMOVE_WIDTH, MULTI_LORA_REMOVE_WIDTH];
+    const clip = [remove[0] - MULTI_LORA_GAP - MULTI_LORA_STRENGTH_WIDTH, MULTI_LORA_STRENGTH_WIDTH];
+    const model = [clip[0] - MULTI_LORA_GAP - MULTI_LORA_STRENGTH_WIDTH, MULTI_LORA_STRENGTH_WIDTH];
+    const toggle = [MULTI_LORA_MARGIN + 8, MULTI_LORA_TOGGLE_WIDTH + 8];
+    const textX = toggle[0] + MULTI_LORA_TOGGLE_WIDTH + 12;
+    const textW = Math.max(20, model[0] - 8 - textX);
+    return { remove, clip, model, toggle, textX, textW };
+};
+
+const lxRoundRect = (ctx, x, y, w, h, r) => {
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+    else ctx.rect(x, y, w, h);
+};
+
+const lxFitText = (ctx, text, maxWidth) => {
+    text = String(text || "");
+    if (!text || maxWidth <= 0) return "";
+    if (ctx.measureText(text).width <= maxWidth) return text;
+    let cut = text;
+    while (cut.length > 1 && ctx.measureText(cut + "…").width > maxWidth) cut = cut.slice(0, -1);
+    return cut + "…";
+};
+
+const formatStrength = (value) => (Math.round(Number(value || 0) * 100) / 100).toString();
+
+const drawStrengthPill = (ctx, x, y, w, h, value, enabled) => {
+    ctx.fillStyle = "#161616";
+    lxRoundRect(ctx, x, y + 4, w, h - 8, 3);
+    ctx.fill();
+    ctx.strokeStyle = "#3a3a3a";
+    ctx.stroke();
+    ctx.fillStyle = enabled ? "#e6e6e6" : "#888";
+    ctx.font = "12px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(formatStrength(value), x + w / 2, y + h / 2);
+};
+
+const drawMultiLoraRow = (widget, ctx, node, width, posY) => {
+    const h = MULTI_LORA_ROW_HEIGHT;
+    const val = widget.value || {};
+    const enabled = !!val.on;
+    const layout = getMultiLoraLayout(width);
+
+    ctx.save();
+    ctx.fillStyle = "#222";
+    ctx.strokeStyle = enabled ? "#3d3d3d" : "#2e2e2e";
+    lxRoundRect(ctx, MULTI_LORA_MARGIN, posY, width - MULTI_LORA_MARGIN * 2, h, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    const [toggleX] = layout.toggle;
+    const toggleY = posY + (h - MULTI_LORA_TOGGLE_HEIGHT) / 2;
+    ctx.fillStyle = enabled ? "#2f6b3a" : "#444";
+    lxRoundRect(ctx, toggleX, toggleY, MULTI_LORA_TOGGLE_WIDTH, MULTI_LORA_TOGGLE_HEIGHT, MULTI_LORA_TOGGLE_HEIGHT / 2);
+    ctx.fill();
+    const knobR = MULTI_LORA_TOGGLE_HEIGHT / 2 - 2;
+    const knobX = toggleX + (enabled ? MULTI_LORA_TOGGLE_WIDTH - knobR - 2 : knobR + 2);
+    ctx.beginPath();
+    ctx.arc(knobX, toggleY + MULTI_LORA_TOGGLE_HEIGHT / 2, knobR, 0, Math.PI * 2);
+    ctx.fillStyle = enabled ? "#eaffea" : "#999";
+    ctx.fill();
+
+    ctx.fillStyle = enabled ? "#cc6666" : "#7a4a4a";
+    ctx.font = "bold 13px sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText("✕", layout.remove[0] + layout.remove[1] - 2, posY + h / 2);
+
+    drawStrengthPill(ctx, layout.model[0], posY, layout.model[1], h, val.strength ?? 1, enabled);
+    drawStrengthPill(ctx, layout.clip[0], posY, layout.clip[1], h, val.strengthTwo ?? val.strength ?? 1, enabled);
+
+    ctx.fillStyle = enabled ? "#ddd" : "#888";
+    ctx.font = "13px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(lxFitText(ctx, val.lora || "None", layout.textW), layout.textX, posY + h / 2);
+    ctx.restore();
+};
+
+const getMultiLoraHitArea = (layout, x) => {
+    const within = (area) => x >= area[0] && x <= area[0] + area[1];
+    if (within(layout.toggle)) return "toggle";
+    if (within(layout.remove)) return "remove";
+    if (within(layout.model)) return "strength";
+    if (within(layout.clip)) return "strengthTwo";
+    if (x >= layout.textX && x <= layout.textX + layout.textW) return "name";
+    return null;
+};
+
+const removeMultiLoraRow = (node, widget) => {
+    if (!node.widgets.includes(widget)) return;
+    node.removeWidget(widget);
+    node.setDirtyCanvas(true, true);
+    node.graph?.incrementVersion();
+};
+
+const setMultiLoraRows = (node, values) => {
+    for (const widget of getMultiLoraWidgets(node)) {
+        if (node.widgets.includes(widget)) node.removeWidget(widget);
+    }
+    for (const value of values) node.addCustomWidget(createMultiLoraRow(node, value));
+    node.setDirtyCanvas(true, true);
+    node.graph?.incrementVersion();
+};
+
+const handleMultiLoraRowMouse = (widget, event, pos, node) => {
+    const h = MULTI_LORA_ROW_HEIGHT;
+    const top = widget.last_y ?? 0;
+    const inside = pos[1] >= top && pos[1] <= top + h + 4;
+    const layout = getMultiLoraLayout(node.size[0]);
+    const area = getMultiLoraHitArea(layout, pos[0]);
+
+    if (event.type === "pointerdown") {
+        if (!inside || !area) return false;
+        if (area === "toggle") {
+            widget.value.on = !widget.value.on;
+            node.setDirtyCanvas(true, true);
+            node.graph?.incrementVersion();
+            return true;
+        }
+        if (area === "strength" || area === "strengthTwo") {
+            widget._dragArea = area;
+            widget._dragX = pos[0];
+            widget._dragStart = Number(area === "strength"
+                ? (widget.value.strength ?? 1)
+                : (widget.value.strengthTwo ?? widget.value.strength ?? 1));
+            widget._moved = false;
+        } else {
+            widget._downArea = area;
+            widget._moved = false;
+        }
+        return true;
+    }
+
+    if (event.type === "pointermove") {
+        if (widget._dragArea) {
+            const dx = pos[0] - widget._dragX;
+            if (Math.abs(dx) > 2) {
+                widget._moved = true;
+                const step = event.shiftKey ? 0.01 : 0.05;
+                const next = widget._dragStart + dx * step;
+                widget.value[widget._dragArea] = Math.round(Math.max(-10, Math.min(10, next)) * 100) / 100;
+                node.setDirtyCanvas(true, true);
+            }
+            return true;
+        }
+        return !!widget._downArea;
+    }
+
+    if (event.type === "pointerup") {
+        const dragArea = widget._dragArea;
+        const downArea = widget._downArea;
+        const moved = widget._moved;
+        widget._dragArea = null;
+        widget._downArea = null;
+        widget._moved = false;
+
+        if (dragArea) {
+            if (!moved && inside) {
+                app.canvas.prompt("Strength", widget.value[dragArea] ?? 1, (value) => {
+                    const num = Number(value);
+                    if (!Number.isFinite(num)) return;
+                    widget.value[dragArea] = Math.max(-10, Math.min(10, Math.round(num * 100) / 100));
+                    node.setDirtyCanvas(true, true);
+                    node.graph?.incrementVersion();
+                }, event);
+            }
+            return true;
+        }
+
+        if (downArea && inside && !moved) {
+            if (downArea === "remove") {
+                removeMultiLoraRow(node, widget);
+            } else if (downArea === "name" && _lxLoraOpenBrowser) {
+                _lxLoraOpenBrowser(node);
+            }
+            return true;
+        }
+        return !!downArea;
+    }
+    return false;
+};
+
+const nextMultiLoraWidgetName = (node) => {
+    let max = 0;
+    for (const w of getMultiLoraWidgets(node)) {
+        const match = /^lora_(\d+)$/.exec(w.name);
+        if (match) max = Math.max(max, parseInt(match[1], 10));
+    }
+    return "lora_" + (max + 1);
+};
+
+const createMultiLoraRow = (node, value) => ({
+    type: "custom",
+    name: nextMultiLoraWidgetName(node),
+    value: {
+        on: value?.on !== false,
+        lora: typeof value?.lora === "string" ? value.lora : "",
+        strength: Number.isFinite(value?.strength) ? value.strength : 1.0,
+        strengthTwo: Number.isFinite(value?.strengthTwo) ? value.strengthTwo : 1.0,
+    },
+    options: {},
+    y: 0,
+    last_y: 0,
+    _downArea: null,
+    _dragArea: null,
+    _dragX: 0,
+    _dragStart: 1,
+    _moved: false,
+    computeSize(width) {
+        return [width || node.size[0], MULTI_LORA_ROW_HEIGHT];
+    },
+    serializeValue() {
+        return this.value;
+    },
+    draw(ctx, n, width, posY) {
+        drawMultiLoraRow(this, ctx, n, width, posY);
+    },
+    mouse(event, pos, n) {
+        return handleMultiLoraRowMouse(this, event, pos, n);
+    },
+});
+
+const drawMultiLoraHeader = (widget, ctx, node, width, posY) => {
+    const h = 24;
+    const rows = getMultiLoraWidgets(node);
+    const midY = posY + h / 2;
+    ctx.save();
+    ctx.textBaseline = "middle";
+    if (rows.length === 0) {
+        ctx.fillStyle = "#888";
+        ctx.font = "12px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText("No LoRAs loaded. Use the browser button above.", MULTI_LORA_MARGIN + 5, midY);
+        widget._toggleBounds = [0, 0];
+        ctx.restore();
+        return;
+    }
+    const allOn = rows.every(w => !!w.value.on);
+    const anyOn = rows.some(w => !!w.value.on);
+    const tx = MULTI_LORA_MARGIN + 5;
+    const ty = posY + (h - MULTI_LORA_TOGGLE_HEIGHT) / 2;
+    ctx.fillStyle = allOn ? "#2f6b3a" : (anyOn ? "#5a4a2a" : "#444");
+    lxRoundRect(ctx, tx, ty, MULTI_LORA_TOGGLE_WIDTH, MULTI_LORA_TOGGLE_HEIGHT, MULTI_LORA_TOGGLE_HEIGHT / 2);
+    ctx.fill();
+    const knobR = MULTI_LORA_TOGGLE_HEIGHT / 2 - 2;
+    const knobX = tx + (allOn ? MULTI_LORA_TOGGLE_WIDTH - knobR - 2 : knobR + 2);
+    ctx.beginPath();
+    ctx.arc(knobX, ty + MULTI_LORA_TOGGLE_HEIGHT / 2, knobR, 0, Math.PI * 2);
+    ctx.fillStyle = allOn ? "#eaffea" : "#999";
+    ctx.fill();
+    widget._toggleBounds = [tx, MULTI_LORA_TOGGLE_WIDTH + 8];
+
+    ctx.fillStyle = "#aaa";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(`Toggle All (${rows.length})`, tx + MULTI_LORA_TOGGLE_WIDTH + 8, midY);
+
+    const layout = getMultiLoraLayout(width);
+    ctx.fillStyle = "#777";
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("MODEL", layout.model[0] + layout.model[1] / 2, midY);
+    ctx.fillText("CLIP", layout.clip[0] + layout.clip[1] / 2, midY);
+    ctx.restore();
+};
+
+const createMultiLoraHeader = (node) => ({
+    type: "custom",
+    name: "multi_lora_header",
+    value: {},
+    options: { serialize: false },
+    serialize: false,
+    y: 0,
+    last_y: 0,
+    _toggleBounds: [0, 0],
+    computeSize(width) {
+        return [width || node.size[0], 24];
+    },
+    draw(ctx, n, width, posY) {
+        drawMultiLoraHeader(this, ctx, n, width, posY);
+    },
+    mouse(event, pos, n) {
+        if (event.type === "pointerdown"
+            && pos[0] >= this._toggleBounds[0]
+            && pos[0] <= this._toggleBounds[0] + this._toggleBounds[1]) {
+            const rows = getMultiLoraWidgets(n);
+            if (rows.length) {
+                const allOn = rows.every(w => !!w.value.on);
+                for (const row of rows) row.value.on = !allOn;
+                n.setDirtyCanvas(true, true);
+                n.graph?.incrementVersion();
+            }
+            return true;
+        }
+        return false;
+    },
+});
+
+const setupMultiLoraNode = (node) => {
+    if (node._lxMultiLoraSetup) return;
+    node._lxMultiLoraSetup = true;
+
+    const browserBtn = node.addWidget("button", "🌐 Open Visual LoRA Browser", null, () => {
+        if (_lxLoraOpenBrowser) _lxLoraOpenBrowser(node);
+    });
+    browserBtn.options = browserBtn.options || {};
+    browserBtn.options.serialize = false;
+    browserBtn.serialize = false;
+
+    node.addCustomWidget(createMultiLoraHeader(node));
+
+    const computed = node.computeSize();
+    node.size = [Math.max(node.size[0], 380, computed[0]), Math.max(node.size[1], computed[1])];
+    node.setDirtyCanvas(true, true);
+};
+
+const installMultiLoraConfigure = (nodeType) => {
+    const originalConfigure = nodeType.prototype.configure;
+    nodeType.prototype.configure = function(info) {
+        if (!isMultiLoraNode(this)) {
+            return originalConfigure.apply(this, arguments);
+        }
+        // Read values before the base configure runs: ComfyUI migrates
+        // widgets_values against the known widget layout and would drop our
+        // dynamic LoRA rows (they are not part of the node definition).
+        const rawValues = Array.isArray(info?.widgets_values) ? info.widgets_values.slice() : [];
+        // Drop rows from a previous configure (e.g. clone), then restore them.
+        for (const widget of getMultiLoraWidgets(this)) {
+            if (this.widgets.includes(widget)) this.removeWidget(widget);
+        }
+        const result = originalConfigure.apply(this, arguments);
+        const values = rawValues.filter(v => v && typeof v === "object" && typeof v.lora === "string");
+        for (const value of values) this.addCustomWidget(createMultiLoraRow(this, value));
+        return result;
+    };
+};
+
 app.registerExtension({
     name: "VisualLoraBrowserNodes-by-LX-ComfyUI",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        if (nodeData.name === "VisualLoraBrowserLX") {
+        if (nodeData.name === "VisualLoraBrowserLX" || nodeData.name === "VisualMultiLoraLoaderLX") {
+            if (nodeData.name === "VisualMultiLoraLoaderLX" && !nodeType.prototype.__lxMultiConfigureInstalled) {
+                nodeType.prototype.__lxMultiConfigureInstalled = true;
+                installMultiLoraConfigure(nodeType);
+            }
             if (!document.getElementById('lx-lora-browser-styles')) {
             const style = document.createElement("style");
             style.id = 'lx-lora-browser-styles';
@@ -90,9 +452,13 @@ app.registerExtension({
                 .lora-reset-filter-btn:hover { background: #333; }
 
                 .lora-grid { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 15px; align-content: start; }
-                .lora-card { background: #2a2a2a; border-radius: 8px; border: 2px solid transparent; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; transition: 0.2s; width: 160px; height: 230px; flex-shrink: 0;}
+                .lora-card { background: #2a2a2a; border-radius: 8px; border: 2px solid transparent; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; transition: 0.2s; width: 160px; height: 230px; flex-shrink: 0; position: relative;}
                 .lora-card:hover { border-color: #777; transform: translateY(-2px); }
                 .lora-card.selected { border-color: #5588ff; box-shadow: 0 0 10px rgba(85,136,255,0.3); }
+                .lora-card.lora-included { border-color: #4ade80; box-shadow: 0 0 10px rgba(74,222,128,0.25); }
+                .lora-card.lora-included .lora-card-alias { color: #4ade80; }
+                .lora-card-check { position: absolute; top: 6px; left: 6px; z-index: 6; background: rgba(0,0,0,0.7); border-radius: 4px; padding: 2px 4px; display: flex; align-items: center; }
+                .lora-card-check input { width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: #4ade80; }
 
                 .lora-card-img { flex: 1; background: #111; display:flex; align-items:center; justify-content:center; color:#666; font-size: 16px; font-weight: bold; transition: 0.3s; position: relative; min-height: 0; overflow: hidden;}
                 .lora-card-media { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -159,6 +525,8 @@ app.registerExtension({
 
                 .lora-local-img-btn { background: #4a4a4a; color: white; border: 1px solid #666; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 175px; height: 44px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 0;}
                 .lora-local-img-btn:hover { background: #5a5a5a; }
+                .lora-local-img-btn:disabled { opacity: 0.45; cursor: default; }
+                .lora-local-img-btn:disabled:hover { background: #4a4a4a; }
 
                 .lora-view-no-img .lora-card-img { display: none !important; }
                 .lora-view-no-file .lora-card-filename { display: none !important; }
@@ -418,6 +786,7 @@ app.registerExtension({
             };
 
             const openBrowser = async (node) => {
+                const isMulti = isMultiLoraNode(node);
                 let loras = [];
                 try {
                     const [modelsRes, cacheRes] = await Promise.all([
@@ -441,9 +810,14 @@ app.registerExtension({
                 let currentNsfwState = window.comfyVisualLoraNsfwState;
                 if (nsfwStates[currentNsfwState].cls) bg.classList.add(nsfwStates[currentNsfwState].cls);
 
-                let selectedFilename = node.widgets.find(w => w.name === "selected_lora").value;
+                const currentLoras = isMulti ? getMultiLoraWidgets(node).map(w => w.value) : [];
+                let selectedFilename = isMulti
+                    ? (currentLoras[0]?.lora || "")
+                    : node.widgets.find(w => w.name === "selected_lora").value;
+                const chosenLoras = new Set(isMulti ? currentLoras.map(v => v.lora).filter(Boolean) : []);
                 const baseModels = new Set(); Object.values(window.comfyVisualLoraCache).forEach(c => { if (c.baseModel) baseModels.add(c.baseModel); });
                 const fState = window.comfyVisualLoraFilters;
+                const selectedFilter = fState.selected || "all";
 
                 let baseModelOptions = `<label><input type="checkbox" value="all" class="lora-base-cb" ${fState.baseModels.includes("all") ? "checked" : ""}> <strong>All Base Models</strong></label><label><input type="checkbox" value="unknown" class="lora-base-cb" ${fState.baseModels.includes("unknown") ? "checked" : ""}> Unassigned / Failed</label>`;
                 Array.from(baseModels).sort((a, b) => a.localeCompare(b)).forEach(m => { baseModelOptions += `<label><input type="checkbox" value="${escapeHTML(m)}" class="lora-base-cb" ${fState.baseModels.includes(m) ? "checked" : ""}> ${escapeHTML(m)}</label>`; });
@@ -452,7 +826,7 @@ app.registerExtension({
                 bg.innerHTML = `
                     <div class="lora-modal-content">
                         <div class="lora-modal-header">
-                            <h2>🌐 Civitai Visual LoRA Loader by LX</h2>
+                            <h2>${isMulti ? "🌐 Civitai Visual Multi-Lora by LX" : "🌐 Civitai Visual LoRA Loader by LX"}</h2>
                             <div class="lora-header-controls">
                                 <button class="lora-help-btn" id="lora-help-btn" title="Visit GitHub">ℹ️ Get Help</button>
                                 <button class="lora-fetch-all-btn" id="lora-fetch-all-btn" title="Load missing data"><span class="lora-btn-text-normal">🌐 Load All Data</span><span class="lora-btn-text-hover">🔄 Reload All Data</span></button>
@@ -480,8 +854,10 @@ app.registerExtension({
                                     </div>
 
                                     <select id="lora-filter-nsfw" class="lora-filter-select" title="Filter SFW / NSFW"><option value="all" ${fState.nsfw === "all" ? "selected" : ""}>SFW & NSFW</option><option value="sfw" ${fState.nsfw === "sfw" ? "selected" : ""}>SFW Only</option><option value="nsfw" ${fState.nsfw === "nsfw" ? "selected" : ""}>NSFW Only</option></select>
+                                    ${isMulti ? `<select id="lora-filter-selected" class="lora-filter-select" title="Filter by selection status"><option value="all" ${selectedFilter === "all" ? "selected" : ""}>All</option><option value="selected" ${selectedFilter === "selected" ? "selected" : ""}>Selected</option><option value="not-selected" ${selectedFilter === "not-selected" ? "selected" : ""}>Not Selected</option></select>` : ""}
 
                                     <button class="lora-reset-filter-btn" id="lora-reset-filters-btn" title="Reset all filters to default">✖</button>
+                                    ${isMulti ? `<span style="color:#888; font-size:12px; white-space:nowrap;">Tick cards to include them</span>` : ""}
                                 </div>
                                 <div class="lora-grid" id="lora-grid"></div>
                             </div>
@@ -514,12 +890,43 @@ app.registerExtension({
                                         <div class="lora-preview-gallery" id="lora-det-gallery"><div style="width:100%; display:flex; align-items:center; justify-content:center; color:#555; background:#111; border-radius:8px; grid-column: 1 / -1; height: 100px;">Click 'Load Data from Civitai' above</div></div>
                                     </div>
                                 </div>
-                                <div class="lora-bottom-action-bar"><button class="lora-local-img-btn" id="lora-add-local-img-btn">➕ Add Local Media</button><button class="lora-select-btn" id="lora-confirm-btn">Use This LoRA</button></div>
+                                <div class="lora-bottom-action-bar"><button class="lora-local-img-btn" id="lora-add-local-img-btn">➕ Add Local Media</button>${isMulti ? `<button class="lora-local-img-btn" id="lora-clear-selection-btn" title="Uncheck every LoRA">🧹 Clear Selection</button>` : ""}<button class="lora-select-btn" id="lora-confirm-btn">${isMulti ? "Apply Selection (0)" : "Use This LoRA"}</button></div>
                             </div>
                         </div>
                     </div>
                 `;
                 document.body.appendChild(bg);
+
+                const updateApplyLabel = () => {
+                    const confirmBtn = bg.querySelector("#lora-confirm-btn");
+                    if (confirmBtn && isMulti) confirmBtn.innerText = `Apply Selection (${chosenLoras.size})`;
+                    const clearBtn = bg.querySelector("#lora-clear-selection-btn");
+                    if (clearBtn) clearBtn.disabled = chosenLoras.size === 0;
+                };
+                const setChosen = (filename, chosen, cardEl) => {
+                    if (chosen) chosenLoras.add(filename);
+                    else chosenLoras.delete(filename);
+                    cardEl?.classList.toggle("lora-included", chosen);
+                    updateApplyLabel();
+                    const statusFilter = bg.querySelector("#lora-filter-selected");
+                    if (statusFilter && statusFilter.value !== "all") filterAndSortCards();
+                };
+                updateApplyLabel();
+
+                const clearSelectionBtn = bg.querySelector("#lora-clear-selection-btn");
+                if (clearSelectionBtn) {
+                    clearSelectionBtn.onclick = () => {
+                        chosenLoras.clear();
+                        bg.querySelectorAll(".lora-card").forEach(card => {
+                            card.classList.remove("lora-included");
+                            const checkbox = card.querySelector(".lora-card-cb");
+                            if (checkbox) checkbox.checked = false;
+                        });
+                        updateApplyLabel();
+                        const statusFilter = bg.querySelector("#lora-filter-selected");
+                        if (statusFilter && statusFilter.value !== "all") filterAndSortCards();
+                    };
+                }
 
                 // Fetch All Sync Check
                 const checkFetchAllStatus = () => {
@@ -616,7 +1023,7 @@ app.registerExtension({
                 };
                 viewCheckboxes.forEach(cb => cb.onchange = () => { updateViewClasses(); filterAndSortCards(); });
 
-                bg.querySelector("#lora-reset-filters-btn").onclick = () => { bg.querySelector("#lora-filter-text").value = ""; window.comfyVisualLoraSortAsc = true; getBaseCheckboxes().forEach(c => c.checked = (c.value === "all")); viewCheckboxes.forEach(c => c.checked = true); updateViewClasses(); filterAndSortCards(); };
+                bg.querySelector("#lora-reset-filters-btn").onclick = () => { bg.querySelector("#lora-filter-text").value = ""; window.comfyVisualLoraSortAsc = true; getBaseCheckboxes().forEach(c => c.checked = (c.value === "all")); viewCheckboxes.forEach(c => c.checked = true); const statusFilter = bg.querySelector("#lora-filter-selected"); if (statusFilter) statusFilter.value = "all"; updateViewClasses(); filterAndSortCards(); };
 
                 const leftPane = bg.querySelector("#lora-left-pane"); const resizer = bg.querySelector("#lora-resizer"); let isResizing = false;
                 resizer.addEventListener("mousedown", () => { isResizing = true; bg.style.cursor = "col-resize"; });
@@ -640,8 +1047,8 @@ app.registerExtension({
                 };
 
                 const filterAndSortCards = () => {
-                    const searchStr = bg.querySelector("#lora-filter-text").value.toLowerCase(); const reqNsfw = bg.querySelector("#lora-filter-nsfw").value; const activeBaseModels = Array.from(getBaseCheckboxes()).filter(c => c.checked).map(c => c.value);
-                    window.comfyVisualLoraFilters.search = searchStr; window.comfyVisualLoraFilters.nsfw = reqNsfw; window.comfyVisualLoraFilters.baseModels = activeBaseModels;
+                    const searchStr = bg.querySelector("#lora-filter-text").value.toLowerCase(); const reqNsfw = bg.querySelector("#lora-filter-nsfw").value; const activeBaseModels = Array.from(getBaseCheckboxes()).filter(c => c.checked).map(c => c.value); const reqSelected = bg.querySelector("#lora-filter-selected")?.value || "all";
+                    window.comfyVisualLoraFilters.search = searchStr; window.comfyVisualLoraFilters.nsfw = reqNsfw; window.comfyVisualLoraFilters.selected = reqSelected; window.comfyVisualLoraFilters.baseModels = activeBaseModels;
                     const grid = bg.querySelector("#lora-grid"); const cards = Array.from(grid.querySelectorAll(".lora-card"));
 
                     cards.forEach(card => {
@@ -649,7 +1056,8 @@ app.registerExtension({
                         let matchText = name.includes(searchStr) || alias.includes(searchStr) || (cData.baseModel && cData.baseModel.toLowerCase().includes(searchStr)) || (cData.personalNote && cData.personalNote.toLowerCase().includes(searchStr)) || (cData.trainedWords && cData.trainedWords.join(" ").toLowerCase().includes(searchStr));
                         const isNsfw = cData.userNsfw || false; let matchNsfw = true; if (reqNsfw === "sfw" && isNsfw) matchNsfw = false; if (reqNsfw === "nsfw" && !isNsfw) matchNsfw = false;
                         let matchBase = false; if (activeBaseModels.includes("all")) matchBase = true; else if (activeBaseModels.includes("unknown") && !cData.baseModel) matchBase = true; else if (activeBaseModels.includes(cData.baseModel)) matchBase = true;
-                        card.style.display = (matchText && matchNsfw && matchBase) ? "flex" : "none";
+                        let matchSelected = true; if (reqSelected === "selected") matchSelected = chosenLoras.has(fname); else if (reqSelected === "not-selected") matchSelected = !chosenLoras.has(fname);
+                        card.style.display = (matchText && matchNsfw && matchBase && matchSelected) ? "flex" : "none";
                     });
 
                     cards.sort((a, b) => {
@@ -666,14 +1074,20 @@ app.registerExtension({
                     localStorage.setItem("lx_lora_nsfw_filter", e.target.value);
                     filterAndSortCards();
                 };
+                const selectedFilterEl = bg.querySelector("#lora-filter-selected");
+                if (selectedFilterEl) selectedFilterEl.onchange = filterAndSortCards;
 
                 const grid = bg.querySelector("#lora-grid"); let currentlySelectedDiv = null;
                 loras.forEach(lora => {
                     const card = document.createElement("div"); card.className = "lora-card"; card.dataset.filename = lora.filename; card.dataset.name = lora.name;
                     const cDataStart = window.comfyVisualLoraCache[lora.filename] || {}; if (cDataStart.userNsfw) card.classList.add("is-lora-nsfw");
                     if (lora.filename === selectedFilename) { card.classList.add("selected"); currentlySelectedDiv = card; }
+                    if (isMulti && chosenLoras.has(lora.filename)) card.classList.add("lora-included");
 
-                    card.innerHTML = `
+                    const cardCheck = isMulti
+                        ? `<label class="lora-card-check" title="Include this LoRA in the node"><input type="checkbox" class="lora-card-cb" ${chosenLoras.has(lora.filename) ? "checked" : ""}></label>`
+                        : "";
+                    card.innerHTML = `${cardCheck}
                         <div class="lora-card-img">NO DATA</div>
                         <div class="lora-card-footer">
                             <div class="lora-card-alias">${escapeHTML(cDataStart.alias)}</div>
@@ -682,13 +1096,27 @@ app.registerExtension({
                         </div>`;
 
                     grid.appendChild(card); updateCardPreview(bg, lora.filename);
-                    card.onclick = () => {
+                    const cardCheckbox = card.querySelector(".lora-card-cb");
+                    if (cardCheckbox) {
+                        cardCheckbox.onclick = (e) => {
+                            e.stopPropagation();
+                            setChosen(lora.filename, cardCheckbox.checked, card);
+                        };
+                    }
+                    card.onclick = (e) => {
+                        if (isMulti && (e.ctrlKey || e.metaKey)) {
+                            const next = !chosenLoras.has(lora.filename);
+                            if (cardCheckbox) cardCheckbox.checked = next;
+                            setChosen(lora.filename, next, card);
+                            return;
+                        }
                         if (currentlySelectedDiv) currentlySelectedDiv.classList.remove("selected"); card.classList.add("selected"); currentlySelectedDiv = card; selectedFilename = lora.filename;
                         updateRightPanel(selectedFilename);
                     };
                 });
 
                 updateViewClasses(); filterAndSortCards();
+                if (isMulti && selectedFilename) updateRightPanel(selectedFilename);
 
                 const noteTimeouts = new Map();
                 const noteSavedTimeouts = new Map();
@@ -887,6 +1315,20 @@ app.registerExtension({
 
                 bg.querySelector("#lora-close-modal").onclick = closeModal;
                 bg.querySelector("#lora-confirm-btn").onclick = () => {
+                    if (isMulti) {
+                        const existing = getMultiLoraWidgets(node).map(w => w.value);
+                        const values = existing
+                            .filter(v => v.lora && chosenLoras.has(v.lora))
+                            .map(v => ({ ...v }));
+                        for (const filename of chosenLoras) {
+                            if (!existing.some(v => v.lora === filename)) {
+                                values.push({ on: true, lora: filename, strength: 1.0, strengthTwo: 1.0 });
+                            }
+                        }
+                        setMultiLoraRows(node, values);
+                        closeModal();
+                        return;
+                    }
                     const widget = node.widgets.find(w => w.name === "selected_lora");
                     widget.value = selectedFilename;
                     node.setDirtyCanvas(true, true);
@@ -942,7 +1384,13 @@ app.registerExtension({
         }
     },
     nodeCreated(node) {
-        if ((node.comfyClass || node.type) !== "VisualLoraBrowserLX" || !_lxLoraOpenBrowser) return;
+        if (!_lxLoraOpenBrowser) return;
+        const nodeType = node.comfyClass || node.type;
+        if (nodeType === "VisualMultiLoraLoaderLX") {
+            setupMultiLoraNode(node);
+            return;
+        }
+        if (nodeType !== "VisualLoraBrowserLX") return;
         const buttonLabel = "🌐 Open Visual LoRA Browser";
         if (node.widgets?.find(w => w.name === buttonLabel)) return;
         const dataWidget = node.widgets?.find(w => w.name === "selected_lora");
